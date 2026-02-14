@@ -476,6 +476,12 @@ public:
         this->parent_context = parent;
     }
 
+    Context* get_global() {
+        if (parent_context)
+            return parent_context->get_global();
+        return this;
+    }
+
     bool is_exist_in_this_level(std::string name) {
         return table.find(name) != table.end();
     }
@@ -489,7 +495,7 @@ public:
 
     void ce(std::string name) {
         if (!is_exist_in_this_level(name)) {
-            std::cout << "Name '" << name << "' double define in scope '" << display_name << "'\n";
+            std::cout << "Name '" << name << "' is not define in scope '" << display_name << "'\n";
             exit(-1);
         }
     }
@@ -591,8 +597,14 @@ public:
     Context* global;
 
     void execute_all() {
-        for (auto i : opers)
-            visit_node(i);
+        for (auto i : opers) {
+            auto tmp = visit_node(i);
+            if (tmp->kind == Value::V_RT_RESULT) {
+                auto t = (RTResult*) tmp;
+                if (t->kind == RTResult::S_RETURN)
+                    return;
+            }
+        }
     }
 
     void setup_build_in_functions() {
@@ -653,7 +665,7 @@ private:
             std::cout << "InterpreSystemBuildInFunction 'Length' Needs 1 value\n";
             exit(-1);
         }
-        return new String(((Integer*)args[0])->number);
+        return new Integer(((Integer*)args[0])->number);
     }
 
     Value* system_int_to_str(std::vector<Value*> args) {
@@ -805,7 +817,7 @@ private:
         for (auto i : call_node->args) args.push_back(visit_value(i));
         auto body = (Function*)visit_member_access(fn_id);
         std::string name = (fn_id->kind == AST::A_MEMBER_ACCESS)? ((MemberAccessNode*)fn_id)->member : ((IdNode*)fn_id)->id;
-        auto c = new Context(name ,global);
+        auto c = new Context(name ,global->get_global());
         if (fn_id->kind == AST::A_MEMBER_ACCESS) {
             auto object_point = visit_member_access(((MemberAccessNode *) fn_id)->parent);
             c->add("this", object_point);
@@ -853,7 +865,7 @@ private:
     }
 
     Value* visit_for(AST* a) {
-        create_scope("<For-Loop>");
+        create_scope("<For-Loop-Condition>");
         auto for_node = (ForNode*) a;
         auto init = for_node->init;
         visit_var_define(init);
@@ -861,7 +873,9 @@ private:
         auto change = for_node->change;
         auto body = ((Block*)for_node->body);
         while (is_loop->b) {
+            create_scope("<For-Loop-Frame>");
             auto res = visit_block(body);
+            leave_scope();
             if (res->kind == Value::V_RT_RESULT) {
                 auto tmp = (RTResult*) res;
                 if (tmp->kind == RTResult::S_CONTINUE) continue;
@@ -875,13 +889,21 @@ private:
         return new RTResult(RTResult::S_NONE);
     }
 
+    void reset_scope() {
+        std::string name = global->display_name;
+        leave_scope();
+        create_scope(name);
+    }
+
     Value* visit_while(AST* a) {
-        create_scope("<While-Loop>");
+        create_scope("<While-Loop-Condition>");
         auto for_node = (WhileNode*) a;
         auto is_loop = (Bool*)visit_value(for_node->condition);
         auto body = ((Block*)for_node->body);
         while (is_loop->b) {
+            create_scope("<While-Loop-Frame>");
             auto res = visit_block(body);
+            leave_scope();
             if (res->kind == Value::V_RT_RESULT) {
                 auto tmp = (RTResult*) res;
                 if (tmp->kind == RTResult::S_NONE || tmp->kind == RTResult::S_CONTINUE) continue;
@@ -929,8 +951,12 @@ private:
             return visit_member_access(a);
         if (a->kind == AST::A_FALSE)
             return new Bool(false);
+        if (a->kind == AST::A_CALL)
+            return visit_call(a);
         if (a->kind == AST::A_TRUE)
             return new Bool(true);
+        if (a->kind == AST::A_ELEMENT_GET)
+            return visit_element_get(a);
         if (a->kind == AST::A_INT)
             return new Integer(((IntegerNode*)a)->number);
         if (a->kind == AST::A_FLO)
