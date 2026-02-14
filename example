@@ -5,7 +5,6 @@ def fib(x: int) {
     return fib(x - 1) + fib(x - 2);
 }
 
-for (i = 0; i < 10; ++i) {
-    let a = StringToInt(Input("val > "));
-    Println(fib(a));
-}
+let k = [1,2,3,4,5];
+k[0] = 12;
+Println(k[0]);

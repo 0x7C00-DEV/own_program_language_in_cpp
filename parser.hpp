@@ -12,7 +12,7 @@ public:
         A_IF, A_BLOCK, A_STRING, A_INT, A_FLO, A_TRUE, A_FALSE, A_WHILE,
         A_FOR, A_CLASS, A_RETURN, A_BREAK, A_CONTINUE, A_BIN_OP, A_BIT_NOT,
         A_MEMBER_ACCESS, A_ID, A_ELEMENT_GET, A_CALL, A_NOT, A_ARRAY, A_SELF_INC,
-        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA
+        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC
     } kind;
 
     AST(AKind kind) {
@@ -41,6 +41,16 @@ public:
     SelfIncNode(AST* id, int i) : AST(A_SELF_INC) {
         this->id = id;
         this->ipre = i;
+    }
+};
+
+class MemoryMallocNode : public AST {
+public:
+    std::string name;
+    std::vector<AST*> args;
+    MemoryMallocNode(std::string name, std::vector<AST*> args) : AST(A_MEM_MALLOC) {
+        this->name = name;
+        this->args = args;
     }
 };
 
@@ -233,9 +243,18 @@ public:
 
 class ObjectNode : public AST {
 public:
+    std::string name;
+
     std::unordered_map<std::string, AST*> members;
-    ObjectNode(std::unordered_map<std::string, AST*> members) : AST(A_CLASS) {
+    ObjectNode(std::string name, std::unordered_map<std::string, AST*> members) : AST(A_CLASS) {
         this->members = members;
+        this->name = name;
+    }
+
+    AST* get_constructor() {
+        if (members.find(name) == members.end())
+            return nullptr;
+        return members[name];
     }
 };
 
@@ -703,7 +722,7 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
             break;
         }
         case AST::A_CLASS: {
-            // TODO: complete this function
+
             break;
         }
         case AST::A_RETURN: {
