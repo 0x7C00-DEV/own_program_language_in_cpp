@@ -5,6 +5,5 @@ def fib(x: int) {
     return fib(x - 1) + fib(x - 2);
 }
 
-let k = [1,2,3,4,5];
-k[0] = 12;
-Println(k[0]);
+let u = "hello, world";
+Println(u[0]);

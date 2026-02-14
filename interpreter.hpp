@@ -425,7 +425,9 @@ public:
     }
 
     Value* element_get(Value* position) override {
-        return new String(std::to_string(this->basicString[std::stoi(((Integer*)position)->number)]));
+        std::string res;
+        res += this->basicString[std::stoi(((Integer*)position)->number)];
+        return new String(res);
     }
 
     Value* add(Value* other) override {
