@@ -577,7 +577,6 @@ public:
         return members[name];
     }
 
-    // 修改：直接替换成员指针
     void set(std::string name, Value* value) {
         members[name] = value;
     }
@@ -730,7 +729,7 @@ private:
             case AST::A_CONTINUE: return visit_continue();
             case AST::A_BIN_OP: return visit_bin_op(a);
             case AST::A_BIT_NOT: return visit_bit_not(a);
-            case AST::A_MEMBER_ACCESS: return visit_member_access(a);   // 用于读取
+            case AST::A_MEMBER_ACCESS: return visit_member_access(a);
             case AST::A_ID: return visit_member_access(a);
             case AST::A_ELEMENT_GET: return visit_element_get(a);
             case AST::A_CALL: return visit_call(a);
@@ -745,7 +744,6 @@ private:
         return new Null();
     }
 
-    // 新增：获取左值（可写位置）
     LValue visit_lvalue(AST* a) {
         if (a->kind == AST::A_ID) {
             std::string name = ((IdNode*)a)->id;
@@ -757,8 +755,6 @@ private:
         else if (a->kind == AST::A_MEMBER_ACCESS) {
             MemberAccessNode* man = (MemberAccessNode*)a;
             std::string member = man->member;
-            // 递归获取父对象的左值（父对象必须是可写的，但这里我们只读取父对象指针）
-            // 注意：父对象本身可能是一个变量或成员，需要先求值得到对象指针
             Value* parent_val = visit_member_access(man->parent);
             if (parent_val->kind != Value::V_OBJECT) {
                 std::cout << "Member access on non-object\n";
