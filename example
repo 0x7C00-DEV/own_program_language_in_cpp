@@ -1,19 +1,2 @@
-class Test {
-    r: i32;
-    a: list;
-    constructor(x: i32) {
-        this.r = x;
-        this.a = [1,2,3,4];
-    }
-
-    def test(a: i32) {
-        this.r = a;
-    }
-}
-
-
-let u = new Test(1);
-u.test(1212);
-Println(u.r);
-u.a[1] = 12;
-Println(u.a[1]);
+let a = [];
+a.Append(12);

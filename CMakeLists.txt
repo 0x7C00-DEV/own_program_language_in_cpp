@@ -6,4 +6,5 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(OPL main.cpp
         lexer.hpp
         parser.hpp
-        interpreter.hpp)
+        interpreter.hpp
+        running.hpp)

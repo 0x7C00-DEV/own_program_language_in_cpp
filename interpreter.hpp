@@ -399,6 +399,10 @@ public:
         this->elements[pos] = value;
     }
 
+    void append(Value* value) {
+        elements.push_back(value);
+    }
+
     Value* element_get(Value* position) override {
         if (position->kind != ValueKind::V_INT) {
             std::cout << "Not a number\n";
@@ -640,6 +644,7 @@ public:
         global->add("StringToFloat" ,new BuildInFunctions("system_str_to_flo", &Interpreter::system_str_to_flo));
         global->add("Length", new BuildInFunctions("Length", &Interpreter::system_length));
         global->add("Input", new BuildInFunctions("Input", &Interpreter::system_input));
+        global->add("Append", new BuildInFunctions("Append", &Interpreter::system_append));
     }
 private:
     std::vector<AST*> opers;
@@ -651,6 +656,13 @@ private:
     void leave_scope() {
         if (global->parent_context)
             global = global->parent_context;
+    }
+
+    Value* system_append(std::vector<Value*> args) {
+        auto point = (Array*)global->get("this");
+        for (auto i : args)
+            point->add(i);
+        return point->copy();
     }
 
     Value* system_input(std::vector<Value*> args) {
@@ -962,7 +974,7 @@ private:
             return interpreter->execute_result;
         } else if (body->fun_kind == Function::F_BUILD_IN) {
             auto temp = (BuildInFunctions*) body;
-            auto nip = new Interpreter(name, new Context(name, global));
+            auto nip = new Interpreter(name, c);
             return temp->__call__(nip, args);
         }
         return new Null();
