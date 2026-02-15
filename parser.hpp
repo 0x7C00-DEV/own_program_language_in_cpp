@@ -252,7 +252,7 @@ public:
     }
 
     AST* get_constructor() {
-        if (members.find(name) == members.end())
+        if (members.find("constructor") == members.end())
             return nullptr;
         return members[name];
     }
@@ -317,9 +317,11 @@ public:
             else if (match("def")) ast.push_back(make_function_define());
             else if (match("while")) ast.push_back(make_while());
             else if (match("for")) ast.push_back(make_for());
+            else if (match("class")) ast.push_back(make_class());
             else if (match("continue")) ast.push_back(make_continue());
             else if (match("break")) ast.push_back(make_break());
             else if (match("return")) ast.push_back(make_return());
+            else if (match("new")) ast.push_back(make_malloc());
             else if (match("let")) {
                 // advance();
                 auto a = make_var_define_group();
@@ -383,7 +385,7 @@ private:
     }
 
     FunctionNode* make_function_define() {
-        expect_data("def");
+        if (match("def")) advance();
         std::string name = current->data;
         advance();
         std::vector<AST*> vals = make_area("(", ")", ",", &Parser::make_var_define);
@@ -406,6 +408,15 @@ private:
             init_value = make_expression();
         }
         return new VarDefineNode(name, init_value);
+    }
+
+    MemoryMallocNode* make_malloc() {
+        expect_data("new");
+        std::string name = current->data;
+        advance();
+        std::vector<AST*> arg;
+        if (match("(")) arg = make_area("(", ")", ",", &Parser::make_value);
+        return new MemoryMallocNode(name, arg);
     }
 
     WhileNode* make_while() {
@@ -436,6 +447,29 @@ private:
         return new ForNode(init, is_continue, change, body);
     }
 
+    ObjectNode* make_class() {
+        expect_data("class");
+        std::string name = current->data;
+        std::unordered_map<std::string, AST*> members;
+        advance();
+        expect_data("{");
+        while (current && !match("}")) {
+            if (match("def") || match("constructor") /* constructor */) {
+                auto tmp = make_function_define();
+                members[tmp->name] = tmp;
+            } else if (match("let")) {
+                auto vars = make_var_define_group();
+                for (auto i : vars) members[((VarDefineNode*)i)->name] = i;
+            } else {
+                auto v = (VarDefineNode*)make_var_define();
+                members[v->name] = v;
+                expect_data(";");
+            }
+        }
+        expect_data("}");
+        return new ObjectNode(name, members);
+    }
+
     Block* make_block() {
         expect_data("{");
         std::vector<AST*> codes;
@@ -444,6 +478,7 @@ private:
             else if (match("while")) codes.push_back(make_while());
             else if (match("for")) codes.push_back(make_for());
             else if (match("continue")) codes.push_back(make_continue());
+            else if (match("new")) codes.push_back(make_malloc());
             else if (match("break")) codes.push_back(make_break());
             else if (match("return")) codes.push_back(make_return());
             else if (match("let")) {
@@ -587,6 +622,8 @@ private:
         } else if (match("--")) {
             advance();
             return new SelfDecNode(make_value(), pre);
+        } else if (match("new")) {
+            return make_malloc();
         } else if (match(Token::TT_FLOAT)) {
             auto tmp = new FloatNode(current->data);
             advance();
@@ -722,7 +759,16 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
             break;
         }
         case AST::A_CLASS: {
-
+            auto node = (ObjectNode*) a;
+            std::cout << print_indent(indent) << fo << "Class {\n";
+            std::cout << print_indent(indent + 1) << "Name: " << node->name << std::endl;
+            if (!node->members.empty()) {
+                std::cout << print_indent(indent + 1) << "Members [\n";
+                for (auto i : node->members)
+                    decompiler(i.second, indent + 2, i.first + ": ");
+                std::cout << print_indent(indent + 1) << "]\n";
+            }
+            std::cout << print_indent(indent) << "}\n";
             break;
         }
         case AST::A_RETURN: {
@@ -833,6 +879,14 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
             decompiler(sa->target, indent + 1, "Target: ");
             decompiler(sa->value, indent + 1, "Value: ");
             std::cout << print_indent(indent) << "}\n";
+            break;
+        }
+        case AST::A_MEM_MALLOC: {
+            std::cout << print_indent(indent) << fo << "MemoryMalloc (\n";
+            auto n = (MemoryMallocNode*) a;
+            for (int i = 0; i < n->args.size(); ++i)
+                decompiler(n->args[i], indent + 1, std::to_string(i) + ": ");
+            std::cout << print_indent(indent) << ")\n";
             break;
         }
     }

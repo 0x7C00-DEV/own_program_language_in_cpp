@@ -29,8 +29,7 @@ void file() {
     Parser parser(lexer.tokens);
     for (auto i : parser.ast)
         decompiler(i, 0);
-    std::cout << std::endl;
-    std::cout << "InterpreterOutput: \n";
+    printf("OUTPUT:\n");
     Interpreter ip("<Program>", parser.ast);
 }
 #endif

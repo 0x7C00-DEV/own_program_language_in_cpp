@@ -1,11 +1,21 @@
 #ifndef OPL_INTERPRETER_HPP
 #define OPL_INTERPRETER_HPP
+
 #include <stdlib.h>
 #include <cstring>
 #include "parser.hpp"
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <functional>
+
+class Interpreter;
+class Value;
+
+struct LValue {
+    std::function<Value*()> getter;
+    std::function<void(Value*)> setter;
+};
 
 class Value {
 public:
@@ -37,7 +47,7 @@ public:
 
     void expect(Value* v, ValueKind vk) {
         if (v->kind != vk) {
-            std::cout << "InterpreterWantError: want " << vk << ", meed " << v->kind << std::endl;
+            std::cout << "InterpreterWantError: want " << vk << ", meet " << v->kind << std::endl;
             exit(-1);
         }
     }
@@ -232,9 +242,9 @@ public:
     Value* add(Value* other) override {
         return new Integer(
                 std::to_string(
-                            std::stoi(this->number) + std::stoi(((Integer*)other)->number)
-                        )
-                );
+                        std::stoi(this->number) + std::stoi(((Integer*)other)->number)
+                )
+        );
     }
 
     Value* div(Value* other) override {
@@ -463,8 +473,6 @@ public:
     }
 };
 
-class Interpreter;
-
 using MF = Value*(Interpreter::*)(std::vector<Value*>);
 
 class Context {
@@ -520,7 +528,7 @@ public:
             exit(-1);
         }
         if (is_exist_in_this_level(name)) {
-            table[name]->set(value);
+            table[name] = value;
             return;
         }
         parent_context->set(name, value);
@@ -529,9 +537,15 @@ public:
 
 class BasicObject : public Value {
 public:
+    std::string name;
     std::unordered_map<std::string, Value*> members;
-    BasicObject(std::unordered_map<std::string, Value*> members) : Value(V_OBJECT) {
+    BasicObject(std::string name, std::unordered_map<std::string, Value*> members) : Value(V_OBJECT) {
         this->members = members;
+        this->name = name;
+    }
+
+    Value* copy() override {
+        return new BasicObject(name, members);
     }
 
     BasicObject() : Value(V_OBJECT) { }
@@ -550,16 +564,22 @@ public:
         }
     }
 
+    Value* get_constructor() {
+        if (!is_exist("constructor")) return nullptr;
+        return get("constructor");
+    }
+
     Value* get(std::string name) {
         if (!is_exist(name)){
-            std::cout << "Name '" << name << "' is double define\n";
+            std::cout << "Name '" << name << "' is not define in object '" << this->name << "'\n";
             exit(-1);
         }
         return members[name];
     }
 
+    // 修改：直接替换成员指针
     void set(std::string name, Value* value) {
-        get(name)->set(value);
+        members[name] = value;
     }
 };
 
@@ -601,6 +621,9 @@ public:
     void execute_all() {
         for (auto i : opers) {
             auto tmp = visit_node(i);
+            if (tmp->kind == Value::V_FUNC) {
+                global->add(((Function*)tmp)->name, tmp);
+            }
             if (tmp->kind == Value::V_RT_RESULT) {
                 auto t = (RTResult*) tmp;
                 if (t->kind == RTResult::S_RETURN)
@@ -707,7 +730,7 @@ private:
             case AST::A_CONTINUE: return visit_continue();
             case AST::A_BIN_OP: return visit_bin_op(a);
             case AST::A_BIT_NOT: return visit_bit_not(a);
-            case AST::A_MEMBER_ACCESS: return visit_member_access(a);
+            case AST::A_MEMBER_ACCESS: return visit_member_access(a);   // 用于读取
             case AST::A_ID: return visit_member_access(a);
             case AST::A_ELEMENT_GET: return visit_element_get(a);
             case AST::A_CALL: return visit_call(a);
@@ -715,25 +738,129 @@ private:
             case AST::A_SELF_INC: return visit_self_inc(a);
             case AST::A_SELF_DEC: return visit_self_dec(a);
             case AST::A_VAR_DEF: visit_var_define(a); break;
-            case AST::A_FUNC_DEFINE: visit_function(a); break;
+            case AST::A_FUNC_DEFINE: return visit_function(a);
             case AST::A_SELF_OPERA: visit_self_opera(a); break;
+            case AST::A_MEM_MALLOC: return visit_memory_malloc(a);
         }
         return new Null();
+    }
+
+    // 新增：获取左值（可写位置）
+    LValue visit_lvalue(AST* a) {
+        if (a->kind == AST::A_ID) {
+            std::string name = ((IdNode*)a)->id;
+            return {
+                    [this, name]() -> Value* { return global->get(name); },
+                    [this, name](Value* val) { global->set(name, val); }
+            };
+        }
+        else if (a->kind == AST::A_MEMBER_ACCESS) {
+            MemberAccessNode* man = (MemberAccessNode*)a;
+            std::string member = man->member;
+            // 递归获取父对象的左值（父对象必须是可写的，但这里我们只读取父对象指针）
+            // 注意：父对象本身可能是一个变量或成员，需要先求值得到对象指针
+            Value* parent_val = visit_member_access(man->parent);
+            if (parent_val->kind != Value::V_OBJECT) {
+                std::cout << "Member access on non-object\n";
+                exit(-1);
+            }
+            BasicObject* obj = (BasicObject*)parent_val;
+            return {
+                    [obj, member]() -> Value* { return obj->get(member); },
+                    [obj, member](Value* val) { obj->set(member, val); }
+            };
+        }
+        else if (a->kind == AST::A_ELEMENT_GET) {
+            ElementGetNode* egn = (ElementGetNode*)a;
+            Value* arr_val = visit_member_access(egn->array_name);
+            Value* pos_val = visit_value(egn->position);
+            if (pos_val->kind != Value::V_INT) {
+                std::cout << "Index must be integer\n";
+                exit(-1);
+            }
+            int pos = std::stoi(((Integer*)pos_val)->number);
+            if (arr_val->kind == Value::V_ARRAY) {
+                Array* arr = (Array*)arr_val;
+                return {
+                        [arr, pos]() -> Value* { return arr->elements[pos]; },
+                        [arr, pos](Value* val) { arr->elements[pos] = val; }
+                };
+            } else if (arr_val->kind == Value::V_STRING) {
+                String* str = (String*)arr_val;
+                return {
+                        [str, pos]() -> Value* {
+                            std::string res;
+                            res += str->basicString[pos];
+                            return new String(res);
+                        },
+                        [str, pos](Value* val) {
+                            if (val->kind != Value::V_STRING) {
+                                std::cout << "Can only assign char to string element\n";
+                                exit(-1);
+                            }
+                            str->basicString[pos] = ((String*)val)->basicString[0];
+                        }
+                };
+            } else {
+                std::cout << "Cannot element-get on non-array/string\n";
+                exit(-1);
+            }
+        }
+        else {
+            std::cout << "Expression cannot be used as lvalue\n";
+            exit(-1);
+        }
+    }
+
+    Value* visit_memory_malloc(AST* a) {
+        auto cnode = (MemoryMallocNode*) a;
+        auto cname = cnode->name;
+        auto args = cnode->args;
+        auto obj = (BasicObject*)(global->get(cname)->copy());
+        if (args.empty()) return obj;
+        auto constructor_val = obj->get_constructor();
+        if (!constructor_val) return obj;
+        if (constructor_val->kind != Value::V_FUNC) {
+            std::cout << "Constructor is not a function\n";
+            exit(-1);
+        }
+        UserDefineFunction* constructor = (UserDefineFunction*)constructor_val;
+        auto ctemplate = constructor->args;
+        if (args.size() != ctemplate.size()) {
+            std::cout << cname + "$constructor need " << ctemplate.size() << " values but find " << args.size() << "\n";
+            exit(-1);
+        }
+        Context* c = new Context("Context", global->get_global());
+        c->add("this", obj);
+        for (int i = 0; i < ctemplate.size(); ++i) c->add(ctemplate[i], visit_value(args[i]));
+        auto ip = new Interpreter(cname + "$constructor", constructor->body, c);
+        return obj;
     }
 
     Value* visit_self_opera(AST* a) {
         auto sp = (SelfOperator*) a;
         std::string op = sp->op;
-        auto id = visit_member_access(sp->target);
-        auto val = visit_value(sp->value);
-        if (op == "+=") id->set(id->add(val));
-        if (op == "-=") id->set(id->sub(val));
-        if (op == "*=") id->set(id->mul(val));
-        if (op == "/=") id->set(id->div(val));
-        if (op == ">>=") id->set(id->right_move(val));
-        if (op == "<<=") id->set(id->left_move(val));
-        if (op == "%=") id->set(id->mod(val));
-        if (op == "=") id->set(val->copy());
+        LValue lv = visit_lvalue(sp->target);
+        Value* val = visit_value(sp->value);
+
+        if (op == "=") {
+            lv.setter(val->copy());
+        } else {
+            Value* current = lv.getter();
+            Value* result = nullptr;
+            if (op == "+=") result = current->add(val);
+            else if (op == "-=") result = current->sub(val);
+            else if (op == "*=") result = current->mul(val);
+            else if (op == "/=") result = current->div(val);
+            else if (op == ">>=") result = current->right_move(val);
+            else if (op == "<<=") result = current->left_move(val);
+            else if (op == "%=") result = current->mod(val);
+            else {
+                std::cout << "Unknown self operator: " << op << std::endl;
+                exit(-1);
+            }
+            lv.setter(result);
+        }
         return new Null();
     }
 
@@ -747,26 +874,36 @@ private:
 
     Value* visit_self_inc(AST* a) {
         auto tmp = (SelfIncNode*) a;
-        auto addr = visit_member_access(tmp->id);
+        LValue lv = visit_lvalue(tmp->id);
+        Value* current = lv.getter();
+        Value* one = new Float("1.0");
         if (tmp->ipre == pre) {
-            auto res = addr->copy();
-            addr->set(addr->add(new Float("1.0")));
-            return res;
+            Value* new_val = current->add(one);
+            lv.setter(new_val);
+            return new_val->copy();
+        } else {
+            Value* old_copy = current->copy();
+            Value* new_val = current->add(one);
+            lv.setter(new_val);
+            return old_copy;
         }
-        addr->set(addr->add(new Float("1.0")));
-        return addr->copy();
     }
 
     Value *visit_self_dec(AST* a) {
         auto tmp = (SelfIncNode*) a;
-        auto addr = visit_member_access(tmp->id);
+        LValue lv = visit_lvalue(tmp->id);
+        Value* current = lv.getter();
+        Value* one = new Float("1.0");
         if (tmp->ipre == pre) {
-            auto res = addr->copy();
-            addr->set(addr->add(new Float("1.0")));
-            return res;
+            Value* new_val = current->sub(one);
+            lv.setter(new_val);
+            return new_val->copy();
+        } else {
+            Value* old_copy = current->copy();
+            Value* new_val = current->sub(one);
+            lv.setter(new_val);
+            return old_copy;
         }
-        addr->set(addr->sub(new Float("1.0")));
-        return addr->copy();
     }
 
     Value* visit_block(AST* a) {
@@ -789,21 +926,13 @@ private:
         return new RTResult(RTResult::S_RETURN);
     }
 
-    Value *visit_break() {
-        return new RTResult(RTResult::S_BREAK);
-    }
+    Value *visit_break() { return new RTResult(RTResult::S_BREAK); }
 
-    Value* visit_continue() {
-        return new RTResult(RTResult::S_CONTINUE);
-    }
+    Value* visit_continue() { return new RTResult(RTResult::S_CONTINUE); }
 
-    Value *visit_bit_not(AST* a) {
-        return visit_value(a)->bit_not();
-    }
+    Value *visit_bit_not(AST* a) { return visit_value(a)->bit_not(); }
 
-    Value* visit_not(AST* a) {
-        return visit_value(a)->cond_not();
-    }
+    Value* visit_not(AST* a) { return visit_value(a)->cond_not(); }
 
     Value* visit_element_get(AST* a) {
         auto tmp = (ElementGetNode*) a;
@@ -840,6 +969,7 @@ private:
             auto nip = new Interpreter(name, new Context(name, global));
             return temp->__call__(nip, args);
         }
+        return new Null();
     }
 
     Value* visit_if(AST* a) {
@@ -862,8 +992,9 @@ private:
         auto fnode = (FunctionNode*) a;
         std::vector<std::string> args;
         for (auto i : fnode->args) args.push_back(((VarDefineNode*)i)->name);
-        global->add(fnode->name, new UserDefineFunction(fnode->name, args, ((Block*)fnode->body)->codes));
-        return new Null();
+        auto d = new UserDefineFunction(fnode->name, args, ((Block*)fnode->body)->codes);
+        global->add(fnode->name, d);
+        return d;
     }
 
     Value* visit_for(AST* a) {
@@ -919,7 +1050,11 @@ private:
     }
 
     void visit_class(AST* a) {
-
+        auto cl = (ObjectNode*) a;
+        std::unordered_map<std::string, Value*> vals;
+        for (auto i : cl->members)
+            vals[i.first] = visit_node(i.second);
+        global->add(cl->name, new BasicObject(cl->name, vals));
     }
 
     Value* visit_member_access(AST* a) {
@@ -933,7 +1068,12 @@ private:
             return visit_value(a);
         if (a->kind == AST::A_ID)
             return global->get(((IdNode*)a)->id);
-        return ((BasicObject*)visit_member_access(((MemberAccessNode*)a)->parent))->get(((MemberAccessNode*)a)->member);
+        Value* parent = visit_member_access(((MemberAccessNode*)a)->parent);
+        if (parent->kind != Value::V_OBJECT) {
+            std::cout << "Member access on non-object\n";
+            exit(-1);
+        }
+        return ((BasicObject*)parent)->get(((MemberAccessNode*)a)->member);
     }
 
     Value* visit_array(AST* a) {
@@ -963,6 +1103,8 @@ private:
             return new Integer(((IntegerNode*)a)->number);
         if (a->kind == AST::A_FLO)
             return new Float(((FloatNode*)a)->number);
+        if (a->kind == AST::A_MEM_MALLOC)
+            return visit_memory_malloc(a);
         if (a->kind == AST::A_ARRAY) {
             std::vector<Value*> values;
             for (auto i : ((ArrayNode*)a)->elements)
