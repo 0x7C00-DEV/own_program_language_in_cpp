@@ -12,7 +12,8 @@ public:
         A_IF, A_BLOCK, A_STRING, A_INT, A_FLO, A_TRUE, A_FALSE, A_WHILE,
         A_FOR, A_CLASS, A_RETURN, A_BREAK, A_CONTINUE, A_BIN_OP, A_BIT_NOT,
         A_MEMBER_ACCESS, A_ID, A_ELEMENT_GET, A_CALL, A_NOT, A_ARRAY, A_SELF_INC,
-        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC, A_LAMBDA
+        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC, A_LAMBDA,
+        A_NULL
     } kind;
 
     AST(AKind kind) {
@@ -270,6 +271,11 @@ public:
     }
 };
 
+class NullNode : public AST {
+public:
+    NullNode() : AST(A_NULL) {}
+};
+
 class ArrayNode : public AST {
 public:
     std::vector<AST*> elements;
@@ -434,7 +440,7 @@ private:
         std::string name = current->data;
         advance();
         std::vector<AST*> arg;
-        if (match("(")) arg = make_area("(", ")", ",", &Parser::make_value);
+        if (match("(")) arg = make_area("(", ")", ",", &Parser::make_expression);
         return new MemoryMallocNode(name, arg);
     }
 
@@ -449,6 +455,11 @@ private:
 
     std::vector<AST*> make_var_define_group() {
         return make_area("let", ";", ",", &Parser::make_var_define);
+    }
+
+    NullNode* make_null () {
+        expect_data("null");
+        return new NullNode();
     }
 
     ForNode* make_for() {
@@ -637,6 +648,8 @@ private:
             return tmp;
         } else if (match("$")) {
             return make_lambda();
+        } else if (match("null")) {
+            return make_null();
         } else if (match("++")) {
             advance();
             return new SelfIncNode(make_value(), pre);

@@ -444,6 +444,14 @@ public:
         return new String(res);
     }
 
+    Value* mul(Value* other) override {
+        expect(other, V_INT);
+        auto t = std::stoi(((Integer*)other)->number);
+        std::string tmp;
+        while (t--) tmp += basicString;
+        return new String(tmp);
+    }
+
     Value* add(Value* other) override {
         switch (other->kind) {
             case Value::V_STRING: return new String(this->basicString + ((String*)other)->basicString);
@@ -646,6 +654,7 @@ public:
         global->add("Length", new BuildInFunctions("Length", &Interpreter::system_length));
         global->add("Input", new BuildInFunctions("Input", &Interpreter::system_input));
         global->add("Append", new BuildInFunctions("Append", &Interpreter::system_append));
+        global->add("NotNull", new BuildInFunctions("NotNull", &Interpreter::system_not_null));
     }
 private:
     std::vector<AST*> opers;
@@ -657,6 +666,10 @@ private:
     void leave_scope() {
         if (global->parent_context)
             global = global->parent_context;
+    }
+
+    Value* system_not_null(std::vector<Value*> args) {
+        return new Bool(args[0]->kind != Value::V_NULL);
     }
 
     Value* system_append(std::vector<Value*> args) {
@@ -753,7 +766,12 @@ private:
             case AST::A_FUNC_DEFINE: return visit_function(a);
             case AST::A_SELF_OPERA: visit_self_opera(a); break;
             case AST::A_MEM_MALLOC: return visit_memory_malloc(a);
+            case AST::A_NULL: return visit_null();
         }
+        return new Null();
+    }
+
+    Value* visit_null() {
         return new Null();
     }
 
@@ -1112,6 +1130,8 @@ private:
             return new Bool(false);
         if (a->kind == AST::A_CALL)
             return visit_call(a);
+        if (a->kind == AST::A_NULL)
+            return visit_null();
         if (a->kind == AST::A_TRUE)
             return new Bool(true);
         if (a->kind == AST::A_ELEMENT_GET)
