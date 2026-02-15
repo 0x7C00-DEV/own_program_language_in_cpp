@@ -12,7 +12,7 @@ public:
         A_IF, A_BLOCK, A_STRING, A_INT, A_FLO, A_TRUE, A_FALSE, A_WHILE,
         A_FOR, A_CLASS, A_RETURN, A_BREAK, A_CONTINUE, A_BIN_OP, A_BIT_NOT,
         A_MEMBER_ACCESS, A_ID, A_ELEMENT_GET, A_CALL, A_NOT, A_ARRAY, A_SELF_INC,
-        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC
+        A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC, A_LAMBDA
     } kind;
 
     AST(AKind kind) {
@@ -175,6 +175,17 @@ public:
     }
 };
 
+class LambdaNode : public AST {
+public:
+    std::vector<AST*> args;
+    Block* body;
+    LambdaNode(std::vector<AST*> args, Block* body) : AST(AST::A_LAMBDA) {
+        this->args = args;
+        this->body = body;
+    }
+};
+
+
 class VarDefineNode : public AST {
 public:
     std::string name;
@@ -211,7 +222,7 @@ public:
 
 class ForNode : public AST {
 public:
-    AST* init;
+    AST* init; 
     AST* is_continue;
     AST* change;
     Block* body;
@@ -232,6 +243,7 @@ class BreakNode : public AST {
 public:
     BreakNode() : AST(A_BREAK) {}
 };
+
 
 class ReturnNode : public AST {
 public:
@@ -321,9 +333,9 @@ public:
             else if (match("continue")) ast.push_back(make_continue());
             else if (match("break")) ast.push_back(make_break());
             else if (match("return")) ast.push_back(make_return());
+            else if (match("$")) ast.push_back(make_lambda());
             else if (match("new")) ast.push_back(make_malloc());
             else if (match("let")) {
-                // advance();
                 auto a = make_var_define_group();
                 for (auto i : a) ast.push_back(i);
             }
@@ -350,6 +362,13 @@ private:
     bool match(Token::TokenKind kind) { return current != nullptr && current->kind == kind; }
 
     bool match(std::string data) { return current != nullptr && current->data == data; }
+
+    LambdaNode* make_lambda() {
+        expect_data("$");
+        auto args = make_area("(", ")", ",", &Parser::make_var_define);
+        auto body = make_block();
+        return new LambdaNode(args, body);
+    }
 
     ContinueNode* make_continue() {
         ++pos;
@@ -616,6 +635,8 @@ private:
             auto tmp = new IntegerNode(current->data);
             advance();
             return tmp;
+        } else if (match("$")) {
+            return make_lambda();
         } else if (match("++")) {
             advance();
             return new SelfIncNode(make_value(), pre);
@@ -878,6 +899,17 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
             std::cout << print_indent(indent) << fo << "SelfOperator<'" + sa->op << "'> {\n";
             decompiler(sa->target, indent + 1, "Target: ");
             decompiler(sa->value, indent + 1, "Value: ");
+            std::cout << print_indent(indent) << "}\n";
+            break;
+        }
+        case AST::A_LAMBDA: {
+            std::cout << print_indent(indent) << fo << "Lambda {\n";
+            auto ln = (LambdaNode*) a;
+            std::cout << print_indent(indent + 1) << "Args: (\n";
+            for (int i = 0; i < ln->args.size(); ++i)
+                decompiler(ln->args[i], indent + 2, std::to_string(i) + ": ");
+            std::cout << print_indent(indent + 1) << ")\n";
+            decompiler(ln->body, indent + 1, "Body: ");
             std::cout << print_indent(indent) << "}\n";
             break;
         }

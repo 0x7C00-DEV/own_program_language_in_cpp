@@ -1,2 +1,17 @@
-let a = [];
-a.Append(12);
+def max(a, b) {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+def max1(a, b) {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+let k = max1(1,2);
+
+Println(k);

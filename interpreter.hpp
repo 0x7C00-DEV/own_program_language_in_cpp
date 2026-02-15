@@ -474,6 +474,7 @@ public:
     UserDefineFunction(std::string name, std::vector<std::string> args, std::vector<AST*> body) : Function(F_USER_DEFINE, name) {
         this->args = args;
         this->body = body;
+        this->name = name;
     }
 };
 
@@ -768,7 +769,7 @@ private:
             MemberAccessNode* man = (MemberAccessNode*)a;
             std::string member = man->member;
             Value* parent_val = visit_member_access(man->parent);
-            if (parent_val->kind != Value::V_OBJECT) {
+            if (parent_val->kind != Value::V_OBJECT && parent_val->kind != Value::V_ARRAY) {
                 std::cout << "Member access on non-object\n";
                 exit(-1);
             }
@@ -1001,7 +1002,6 @@ private:
         std::vector<std::string> args;
         for (auto i : fnode->args) args.push_back(((VarDefineNode*)i)->name);
         auto d = new UserDefineFunction(fnode->name, args, ((Block*)fnode->body)->codes);
-        global->add(fnode->name, d);
         return d;
     }
 
@@ -1065,6 +1065,13 @@ private:
         global->add(cl->name, new BasicObject(cl->name, vals));
     }
 
+    Value* visit_lambda_node(AST* a) {
+        auto ln = (LambdaNode*) a;
+        std::vector<std::string> args;
+        for (auto i : ln->args) args.push_back(((VarDefineNode*)i)->name);
+        return new UserDefineFunction("<UserDefineSubProgram>", args, ln->body->codes);
+    }
+
     Value* visit_member_access(AST* a) {
         if (a->kind == AST::A_ELEMENT_GET)
             return visit_element_get(a);
@@ -1077,7 +1084,7 @@ private:
         if (a->kind == AST::A_ID)
             return global->get(((IdNode*)a)->id);
         Value* parent = visit_member_access(((MemberAccessNode*)a)->parent);
-        if (parent->kind != Value::V_OBJECT) {
+        if (parent->kind != Value::V_OBJECT && parent->kind != Value::V_ARRAY) {
             std::cout << "Member access on non-object\n";
             exit(-1);
         }
@@ -1097,6 +1104,8 @@ private:
             return visit_bin_op(a);
         if (a->kind == AST::A_STRING)
             return new String(((StringNode*)a)->str);
+        if (a->kind == AST::A_LAMBDA)
+            return visit_lambda_node(a);
         if (a->kind == AST::A_ID || a->kind == AST::A_MEMBER_ACCESS)
             return visit_member_access(a);
         if (a->kind == AST::A_FALSE)

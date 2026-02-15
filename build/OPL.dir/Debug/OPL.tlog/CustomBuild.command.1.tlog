@@ -1,0 +1,10 @@
+^D:\CLIONPROJECTS\OPL\CMAKELISTS.TXT
+setlocal
+"D:\Program files\CMake\bin\cmake.exe" -SD:/CLionProjects/OPL -BD:/CLionProjects/OPL/build --check-stamp-file D:/CLionProjects/OPL/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,10 @@
+^D:\CLIONPROJECTS\OPL\BUILD\CMAKEFILES\6A3DCD0AF7694C45716ED4ED638409F3\GENERATE.STAMP.RULE
+setlocal
+"D:\Program files\CMake\bin\cmake.exe" -SD:/CLionProjects/OPL -BD:/CLionProjects/OPL/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/CLionProjects/OPL/build/OPL.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -27,6 +27,8 @@ void file() {
         res += buffer + '\n';
     Lexer lexer(res);
     Parser parser(lexer.tokens);
+    for (auto i : parser.ast)
+        decompiler(i, 0);
     printf("OUTPUT:\n");
     Interpreter ip("<Program>", parser.ast);
 }
