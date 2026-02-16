@@ -557,7 +557,7 @@ public:
 
     BasicObject() : Value(V_OBJECT) { }
 
-    inline bool is_exist(std::string _name) { return members.find(_name) != members.end(); }
+    bool is_exist(std::string _name) { return members.find(_name) != members.end(); }
 
     void add(std::string _name, Value* value) {
         check(_name);
@@ -572,7 +572,6 @@ public:
     }
 
     Value* get_constructor() {
-        if (!is_exist("constructor")) return nullptr;
         return get("constructor");
     }
 
@@ -685,10 +684,9 @@ private:
     }
 
     Value* system_append(std::vector<Value*> args) {
-        auto point = (Array*)global->get("this");
-        for (auto i : args)
-            point->add(i);
-        return point->copy();
+        auto arr = (Array*) args[0];
+        arr->elements.push_back(args[1]);
+        return arr;
     }
 
     Value* system_load_file(std::vector<Value*> args) {
@@ -880,9 +878,8 @@ private:
         auto cname = cnode->name;
         auto args = cnode->args;
         auto obj = (BasicObject*)(global->get(cname)->copy());
-        if (args.empty()) return obj;
         auto constructor_val = obj->get_constructor();
-        if (!constructor_val) return obj;
+        if (!cnode->is_call_c) { return obj; }
         if (constructor_val->kind != Value::V_FUNC) {
             std::cout << "Constructor is not a function\n";
             exit(-1);

@@ -31,7 +31,7 @@ public:
 };
 
 class ImportNode : public AST {
-public:
+public: 
     std::string path;
     ImportNode(std::string path) : AST(A_IMPORT) {
         this->path = path;
@@ -70,9 +70,11 @@ class MemoryMallocNode : public AST {
 public:
     std::string name;
     std::vector<AST*> args;
-    MemoryMallocNode(std::string name, std::vector<AST*> args) : AST(A_MEM_MALLOC) {
+    bool is_call_c;
+    MemoryMallocNode(std::string name, std::vector<AST*> args, bool is_call_constructor) : AST(A_MEM_MALLOC) {
         this->name = name;
         this->args = args;
+        this->is_call_c = is_call_constructor;
     }
     ~MemoryMallocNode() {
         delete &name;
@@ -585,8 +587,9 @@ private:
         expect_data("new", get_pos());
         std::string name = expect_get(Token::TT_ID);
         std::vector<AST*> arg;
-        if (match("(")) arg = make_area("(", ")", ",", &Parser::make_expression);
-        return new MemoryMallocNode(name, arg);
+        bool is_call_constructor = false;
+        if (match("(")) is_call_constructor = true, arg = make_area("(", ")", ",", &Parser::make_expression);
+        return new MemoryMallocNode(name, arg, is_call_constructor);
     }
 
     WhileNode* make_while() {

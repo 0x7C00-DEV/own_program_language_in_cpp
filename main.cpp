@@ -1,6 +1,8 @@
 #include <iostream>
 #include "lexer.hpp"
 #include "parser.hpp"
+#include "assembly.hpp"
+#include "execute.hpp"
 #include "interpreter.hpp"
 #include <fstream>
 
@@ -58,7 +60,7 @@ void run(std::string name) {
 }
 
 void file() {
-    run(R"(D:\CLionProjects\OPL\tests\bin_tree)");
+    run(R"(D:\CLionProjects\OPL\tests\append_test)");
 }
 #endif
 

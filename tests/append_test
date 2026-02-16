@@ -1,0 +1,31 @@
+class Array {
+	arr;
+	constructor() {
+		Println("aaa");
+		this.arr = [];
+	}
+
+	def append(x) {
+		Append(this.arr, x);
+	}
+
+	def get_element(pos) {
+		return this.arr[pos];
+	}
+
+	def set_element(pos, value) {
+		this.arr[pos] = value;
+	}
+
+	def size() {
+		return Length(this.arr);
+	}
+}
+
+let a = new Array();
+a.append(12);
+a.append(1);
+for (i = 0; i < 100; ++i) {
+	a.append(i);
+}
+Println(a.size());
