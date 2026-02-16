@@ -563,16 +563,16 @@ public:
 
     BasicObject() : Value(V_OBJECT) { }
 
-    bool is_exist(std::string name) { return members.find(name) != members.end(); }
+    bool is_exist(std::string _name) { return members.find(_name) != members.end(); }
 
-    void add(std::string name, Value* value) {
-        check(name);
-        members[name] = value;
+    void add(std::string _name, Value* value) {
+        check(_name);
+        members[_name] = value;
     }
 
-    void check(std::string name) {
-        if (is_exist(name)) {
-            std::cout << "Name '" << name << "' is double define\n";
+    void check(std::string _name) {
+        if (is_exist(_name)) {
+            std::cout << "Name '" << _name << "' is double define\n";
             exit(-1);
         }
     }
@@ -582,16 +582,16 @@ public:
         return get("constructor");
     }
 
-    Value* get(std::string name) {
-        if (!is_exist(name)){
-            std::cout << "Name '" << name << "' is not define in object '" << this->name << "'\n";
+    Value* get(std::string _name) {
+        if (!is_exist(_name)){
+            std::cout << "Name '" << _name << "' is not define in object '" << this->name << "'\n";
             exit(-1);
         }
-        return members[name];
+        return members[_name];
     }
 
-    void set(std::string name, Value* value) {
-        members[name] = value;
+    void set(std::string _name, Value* value) {
+        members[_name] = value;
     }
 };
 
@@ -604,9 +604,9 @@ public:
         this->member_function = mf;
     }
 
-    Value* __call__(Interpreter* ip, std::vector<Value*> args) {
-        this->ip = ip;
-        this->args = args;
+    Value* __call__(Interpreter* _ip, std::vector<Value*> _args) {
+        this->ip = _ip;
+        this->args = _args;
         return (ip->*member_function)(args);
     }
 };
@@ -767,6 +767,9 @@ private:
             case AST::A_SELF_OPERA: visit_self_opera(a); break;
             case AST::A_MEM_MALLOC: return visit_memory_malloc(a);
             case AST::A_NULL: return visit_null();
+            default:
+                printf("Operator '%d' not suppose\n", a->kind);
+                exit(-1);
         }
         return new Null();
     }

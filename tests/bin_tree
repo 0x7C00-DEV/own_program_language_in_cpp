@@ -13,18 +13,18 @@ def print_tree(a) {
     if (NotNull(a.left)) {
         print_tree(a.left);
     }
+    Println(a.data);
     if (NotNull(a.right)) {
         print_tree(a.right);
     }
-    Println(a.data);
 }
 
 def build_tree(a, deep) {
     if (deep == 0) {
         return null;
     }
-    a.left = new BinTree(deep - 1, null, null);
-    a.right = new BinTree(deep - 1, null, null);
+    a.left = new BinTree(deep, null, null);
+    a.right = new BinTree(deep, null, null);
     build_tree(a.left, deep - 1);
     build_tree(a.right, deep - 1);
 }

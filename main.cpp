@@ -20,17 +20,20 @@ void shell() {
     }
 }
 
-void file() {
-    std::ifstream ifs("D:\\CLionProjects\\OPL\\example");
+void run(std::string name) {
+    std::ifstream ifs(name);
     std::string buffer, res;
     while (std::getline(ifs, buffer))
         res += buffer + '\n';
     Lexer lexer(res);
     Parser parser(lexer.tokens);
-    for (auto i : parser.ast)
-        decompiler(i, 0);
-    printf("OUTPUT:\n");
+    printf("[%s] OUTPUT:\n", name.c_str());
     Interpreter ip("<Program>", parser.ast);
+}
+
+void file() {
+    run(R"(D:\CLionProjects\OPL\tests\bin_tree)");
+    run(R"(D:\CLionProjects\OPL\tests\lambda)");
 }
 #endif
 

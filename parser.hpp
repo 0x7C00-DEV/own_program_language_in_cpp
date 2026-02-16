@@ -934,6 +934,10 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
             std::cout << print_indent(indent) << ")\n";
             break;
         }
+        case AST::A_NULL: {
+            std::cout << print_indent(indent) << fo << "Null\n";
+            break;
+        }
     }
 }
 
