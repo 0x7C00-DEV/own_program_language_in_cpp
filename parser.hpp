@@ -13,7 +13,7 @@ public:
         A_FOR, A_CLASS, A_RETURN, A_BREAK, A_CONTINUE, A_BIN_OP, A_BIT_NOT,
         A_MEMBER_ACCESS, A_ID, A_ELEMENT_GET, A_CALL, A_NOT, A_ARRAY, A_SELF_INC,
         A_SELF_DEC, A_VAR_DEF, A_FUNC_DEFINE, A_SELF_OPERA, A_MEM_MALLOC, A_LAMBDA,
-        A_NULL
+        A_NULL, A_IMPORT
     } kind;
 
     AST(AKind kind) {
@@ -24,6 +24,14 @@ public:
 class TrueNode : public AST {
 public:
     TrueNode() : AST(AST::A_TRUE) { }
+};
+
+class ImportNode : public AST {
+public:
+    std::string path;
+    ImportNode(std::string path) : AST(A_IMPORT) {
+        this->path = path;
+    }
 };
 
 class FalseNode : public AST {
@@ -337,6 +345,7 @@ public:
             else if (match("for")) ast.push_back(make_for());
             else if (match("class")) ast.push_back(make_class());
             else if (match("continue")) ast.push_back(make_continue());
+            else if (match("import")) ast.push_back(make_import());
             else if (match("break")) ast.push_back(make_break());
             else if (match("return")) ast.push_back(make_return());
             else if (match("$")) ast.push_back(make_lambda());
@@ -368,6 +377,14 @@ private:
     bool match(Token::TokenKind kind) { return current != nullptr && current->kind == kind; }
 
     bool match(std::string data) { return current != nullptr && current->data == data; }
+
+    ImportNode* make_import() {
+        expect_data("import");
+        auto path = current->data;
+        advance();
+        expect_data(";");
+        return new ImportNode(path);
+    }
 
     LambdaNode* make_lambda() {
         expect_data("$");
@@ -506,6 +523,7 @@ private:
         while (current && !match("}")) {
             if (match("if")) codes.push_back(make_if());
             else if (match("while")) codes.push_back(make_while());
+            else if (match("import")) codes.push_back(make_import());
             else if (match("for")) codes.push_back(make_for());
             else if (match("continue")) codes.push_back(make_continue());
             else if (match("new")) codes.push_back(make_malloc());

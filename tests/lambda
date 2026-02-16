@@ -1,6 +1,5 @@
-let add = $(a, b) {
-    return a + b;
-};
+import "D:\CLionProjects\OPL\tests\bin_tree";
 
-let k = add(1, 1);
-Println(k);
+let a = new BinTree(12, null, null);
+build_tree(a, 10);
+print_tree(a);

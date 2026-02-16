@@ -28,11 +28,16 @@ void run(std::string name) {
     Lexer lexer(res);
     Parser parser(lexer.tokens);
     printf("[%s] OUTPUT:\n", name.c_str());
-    Interpreter ip("<Program>", parser.ast);
+    ModuleManager* mg = new ModuleManager;
+    Interpreter ip("<Program>", parser.ast, mg);
+
+    std::cout << std::endl << std::endl;
+    std::cout << "Module import state: \n";
+    for (auto i : mg->count)
+        std::cout << "\t" << i.first << std::endl;
 }
 
 void file() {
-    run(R"(D:\CLionProjects\OPL\tests\bin_tree)");
     run(R"(D:\CLionProjects\OPL\tests\lambda)");
 }
 #endif

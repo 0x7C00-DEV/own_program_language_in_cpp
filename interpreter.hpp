@@ -6,7 +6,9 @@
 #include "parser.hpp"
 #include <iostream>
 #include <vector>
+#include "lexer.hpp"
 #include <unordered_map>
+#include <fstream>
 #include <functional>
 
 class Interpreter;
@@ -490,6 +492,7 @@ using MF = Value*(Interpreter::*)(std::vector<Value*>);
 
 class Context {
 public:
+    bool is_have_std = false;
     Context* parent_context;
     std::unordered_map<std::string, Value*> table;
     std::string display_name;
@@ -611,21 +614,38 @@ public:
     }
 };
 
+
+class ModuleManager {
+public:
+    std::unordered_map<std::string, int> count;
+
+    bool is_import(std::string path) {
+        return count.find(path) != count.end();
+    }
+
+    void regist(std::string name) {
+        count[name] = 1;
+    }
+};
+
 class Interpreter {
 public:
-    Interpreter(std::string fn_name, std::vector<AST*> opers, Context* context = nullptr) {
+    Interpreter(std::string fn_name, std::vector<AST*> opers, ModuleManager *mg, Context* context = nullptr) {
         this->opers = opers;
         this->global = (context)? context: new Context("<Program>");
+        this->mg = mg;
         this->execute_result = new Null();
-        setup_build_in_functions();
+        if (!global->is_have_std) setup_build_in_functions();
         execute_all();
     }
 
     Interpreter(std::string fn_name, Context* context = nullptr) {
         this->global = (context)? context: new Context("<Program>");
         this->execute_result = new Null();
-        setup_build_in_functions();
+        if (!global->is_have_std) setup_build_in_functions();
     }
+
+    ModuleManager* mg;
 
     Value* execute_result;
     Context* global;
@@ -645,6 +665,7 @@ public:
     }
 
     void setup_build_in_functions() {
+        global->is_have_std = true;
         global->add("Print", new BuildInFunctions("print", &Interpreter::system_print));
         global->add("Println", new BuildInFunctions("println", &Interpreter::system_println));
         global->add("StringToInt", new BuildInFunctions("StringToInt", &Interpreter::system_str_to_int));
@@ -742,6 +763,21 @@ private:
         return new Float(((String*)args[0])->basicString);
     }
 
+    void import_module(std::string path) {
+        std::string data, buffer;
+        std::ifstream ifs(path);
+        while (std::getline(ifs, buffer))
+            data += buffer + '\n';
+        Lexer lexer(data);
+        Parser parser(lexer.tokens);
+        auto ip = new Interpreter("<Module>", parser.ast, mg, this->global);
+    }
+
+    void visit_import(AST* a) {
+        auto path = ((ImportNode*) a)->path;
+        if (!mg->is_import(path)) mg->regist(path), import_module(path);
+    }
+
     Value* visit_node(AST* a) {
         switch (a->kind) {
             case AST::A_IF: return visit_if(a);
@@ -754,6 +790,7 @@ private:
             case AST::A_BREAK: return visit_break();
             case AST::A_CONTINUE: return visit_continue();
             case AST::A_BIN_OP: return visit_bin_op(a);
+            case AST::A_IMPORT: visit_import(a); break;
             case AST::A_BIT_NOT: return visit_bit_not(a);
             case AST::A_MEMBER_ACCESS: return visit_member_access(a);
             case AST::A_ID: return visit_member_access(a);
@@ -863,7 +900,7 @@ private:
         Context* c = new Context("Context", global->get_global());
         c->add("this", obj);
         for (int i = 0; i < ctemplate.size(); ++i) c->add(ctemplate[i], visit_value(args[i]));
-        auto ip = new Interpreter(cname + "$constructor", constructor->body, c);
+        auto ip = new Interpreter(cname + "$constructor", constructor->body, mg, c);
         return obj;
     }
 
@@ -992,7 +1029,7 @@ private:
             }
             for (int i = 0; i < args_t.size(); ++i)
                 c->add(args_t[i], args[i]);
-            auto interpreter = new Interpreter(name, temp->body, c);
+            auto interpreter = new Interpreter(name, temp->body, mg, c);
             return interpreter->execute_result;
         } else if (body->fun_kind == Function::F_BUILD_IN) {
             auto temp = (BuildInFunctions*) body;
@@ -1094,16 +1131,11 @@ private:
     }
 
     Value* visit_member_access(AST* a) {
-        if (a->kind == AST::A_ELEMENT_GET)
-            return visit_element_get(a);
-        if (a->kind == AST::A_CALL)
-            return visit_call(a);
-        if (a->kind == AST::A_ARRAY)
-            return visit_array(a);
-        if (a->kind == AST::A_STRING || a->kind == AST::A_INT || a->kind == AST::A_FLO)
-            return visit_value(a);
-        if (a->kind == AST::A_ID)
-            return global->get(((IdNode*)a)->id);
+        if (a->kind == AST::A_ELEMENT_GET) return visit_element_get(a);
+        if (a->kind == AST::A_CALL) return visit_call(a);
+        if (a->kind == AST::A_ARRAY) return visit_array(a);
+        if (a->kind == AST::A_STRING || a->kind == AST::A_INT || a->kind == AST::A_FLO) return visit_value(a);
+        if (a->kind == AST::A_ID) return global->get(((IdNode*)a)->id);
         Value* parent = visit_member_access(((MemberAccessNode*)a)->parent);
         if (parent->kind != Value::V_OBJECT && parent->kind != Value::V_ARRAY) {
             std::cout << "Member access on non-object\n";
@@ -1121,30 +1153,18 @@ private:
     }
 
     Value* visit_value(AST* a) {
-        if (a->kind == AST::A_BIN_OP)
-            return visit_bin_op(a);
-        if (a->kind == AST::A_STRING)
-            return new String(((StringNode*)a)->str);
-        if (a->kind == AST::A_LAMBDA)
-            return visit_lambda_node(a);
-        if (a->kind == AST::A_ID || a->kind == AST::A_MEMBER_ACCESS)
-            return visit_member_access(a);
-        if (a->kind == AST::A_FALSE)
-            return new Bool(false);
-        if (a->kind == AST::A_CALL)
-            return visit_call(a);
-        if (a->kind == AST::A_NULL)
-            return visit_null();
-        if (a->kind == AST::A_TRUE)
-            return new Bool(true);
-        if (a->kind == AST::A_ELEMENT_GET)
-            return visit_element_get(a);
-        if (a->kind == AST::A_INT)
-            return new Integer(((IntegerNode*)a)->number);
-        if (a->kind == AST::A_FLO)
-            return new Float(((FloatNode*)a)->number);
-        if (a->kind == AST::A_MEM_MALLOC)
-            return visit_memory_malloc(a);
+        if (a->kind == AST::A_BIN_OP) return visit_bin_op(a);
+        if (a->kind == AST::A_STRING) return new String(((StringNode*)a)->str);
+        if (a->kind == AST::A_LAMBDA) return visit_lambda_node(a);
+        if (a->kind == AST::A_ID || a->kind == AST::A_MEMBER_ACCESS) return visit_member_access(a);
+        if (a->kind == AST::A_FALSE) return new Bool(false);
+        if (a->kind == AST::A_CALL) return visit_call(a);
+        if (a->kind == AST::A_NULL) return visit_null();
+        if (a->kind == AST::A_TRUE) return new Bool(true);
+        if (a->kind == AST::A_ELEMENT_GET) return visit_element_get(a);
+        if (a->kind == AST::A_INT) return new Integer(((IntegerNode*)a)->number);
+        if (a->kind == AST::A_FLO) return new Float(((FloatNode*)a)->number);
+        if (a->kind == AST::A_MEM_MALLOC) return visit_memory_malloc(a);
         if (a->kind == AST::A_ARRAY) {
             std::vector<Value*> values;
             for (auto i : ((ArrayNode*)a)->elements)

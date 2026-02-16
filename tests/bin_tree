@@ -28,7 +28,3 @@ def build_tree(a, deep) {
     build_tree(a.left, deep - 1);
     build_tree(a.right, deep - 1);
 }
-
-let k = new BinTree(100, null, null);
-build_tree(k, 10);
-print_tree(k);
