@@ -128,12 +128,18 @@ private:
         return Token(data, kind, begin, end);
     }
 
+    void skip() {
+        while (current && (current != '\n' && current != '\r'))
+            advance();
+    }
+
     void make_tokens() {
         while (current) {
             if (std::isdigit(current)) tokens.push_back(make_digit());
             else if (('a' <= current && current <= 'z') || ('A' <= current && current <= 'Z') || current == '_')
                 tokens.push_back(make_id());
             else if (current == '\'' || current == '"') tokens.push_back(make_string());
+            else if (current == '#') skip();
             else if (!std::isspace(current)) {
                 std::string res;
                 bool isf = false;

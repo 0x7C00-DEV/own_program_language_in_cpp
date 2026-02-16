@@ -25,9 +25,7 @@ public:
         V_FLOAT, V_INT, V_STRING, V_BOOL, V_ARRAY, V_FUNC, V_OBJECT, V_NULL, V_RT_RESULT
     } kind;
 
-    Value(ValueKind kind) {
-        this->kind = kind;
-    }
+    Value(ValueKind kind) { this->kind = kind; }
 
     virtual void set(Value*) { operator_not_supposed_err("="); }
 
@@ -100,9 +98,7 @@ public:
 
 class RTResult : public Value {
 public:
-    enum SignalKind {
-        S_BREAK, S_CONTINUE, S_RETURN, S_NONE
-    } kind;
+    enum SignalKind { S_BREAK, S_CONTINUE, S_RETURN, S_NONE } kind;
 
     RTResult(SignalKind kind) : Value(V_RT_RESULT) {
         this->kind = kind;
@@ -127,16 +123,11 @@ public:
         b = (bl == "true");
     }
 
-    Value* copy() override {
-        return new Bool(b);
-    }
+    inline Value* copy() override { return new Bool(b); }
 
-    std::string str() override {
-        if (b) return "True";
-        return "False";
-    }
+    inline std::string str() override { return (b)? "True" : "False"; }
 
-    Bool(bool b) : Value(V_BOOL) {
+    inline Bool(bool b) : Value(V_BOOL) {
         this->b = b;
     }
 
@@ -145,17 +136,11 @@ public:
         this->b = ((Bool*)v)->b;
     }
 
-    Value* cond_not() override {
-        return new Bool(!b);
-    }
+    inline Value* cond_not() override { return new Bool(!b); }
 
-    Value* cond_and(Value* other) override {
-        return new Bool(b && ((Bool*)other)->b);
-    }
+    inline Value* cond_and(Value* other) override { return new Bool(b && ((Bool*)other)->b); }
 
-    Value* cond_or(Value* other) override {
-        return new Bool(b || ((Bool*)other)->b);
-    }
+    inline Value* cond_or(Value* other) override { return new Bool(b || ((Bool*)other)->b); }
 };
 
 class Integer : public Value {
@@ -165,15 +150,11 @@ public:
         this->number = number;
     }
 
-    std::string str() override {
-        return number;
-    }
+    inline std::string str() override { return number; }
 
-    Value* copy() override  {
-        return new Integer(number);
-    }
+    inline Value* copy() override  { return new Integer(number); }
 
-    Value* bit_not() override {
+    inline Value* bit_not() override {
         return new Integer(std::to_string(~std::stoi(number)));
     }
 
@@ -181,9 +162,7 @@ public:
         return new Bool(this->number == ((Integer*)other)->number && this->kind == other->kind);
     }
 
-    Value* not_eq_(Value* other) override {
-        return this->is_eq(other)->cond_not();
-    }
+    Value* not_eq_(Value* other) override { return this->is_eq(other)->cond_not(); }
 
     Value* big(Value* other) override {
         return new Bool(std::stoi(this->number) > std::stoi(((Integer*)other)->number));
@@ -300,13 +279,9 @@ public:
         this->number = ((Float*)other)->number;
     }
 
-    Value* copy() override {
-        return new Float(number);
-    }
+    inline Value* copy() override { return new Float(number); }
 
-    std::string str() override {
-        return number;
-    }
+    inline std::string str() override { return number; }
 
     Value* bit_and(Value* other) override {
         return new Integer(
@@ -380,9 +355,7 @@ public:
         this->elements = elements;
     }
 
-    Value* copy() override {
-        return new Array(elements);
-    }
+    Value* copy() override { return new Array(elements); }
 
     void set(Value* val) override {
         expect(val, V_ARRAY);
@@ -401,9 +374,7 @@ public:
         this->elements[pos] = value;
     }
 
-    void append(Value* value) {
-        elements.push_back(value);
-    }
+    inline void append(Value* value) { elements.push_back(value); }
 
     Value* element_get(Value* position) override {
         if (position->kind != ValueKind::V_INT) {
@@ -422,18 +393,14 @@ public:
         this->basicString = str;
     }
 
-    Value* copy() override {
-        return new String(basicString);
-    }
+    inline Value* copy() override { return new String(basicString); }
 
     void set(Value* value) override {
         expect(value, V_STRING);
         this->basicString = ((String*)value)->basicString;
     }
 
-    std::string str() override {
-        return basicString;
-    }
+    inline std::string str() override { return basicString; }
 
     void element_set(Value* position, Value* value) override {
         int pos = std::stoi(((Integer*)position)->number);
@@ -590,7 +557,7 @@ public:
 
     BasicObject() : Value(V_OBJECT) { }
 
-    bool is_exist(std::string _name) { return members.find(_name) != members.end(); }
+    inline bool is_exist(std::string _name) { return members.find(_name) != members.end(); }
 
     void add(std::string _name, Value* value) {
         check(_name);
@@ -677,9 +644,8 @@ public:
     void execute_all() {
         for (auto i : opers) {
             auto tmp = visit_node(i);
-            if (tmp->kind == Value::V_FUNC) {
+            if (tmp->kind == Value::V_FUNC)
                 global->add(((Function*)tmp)->name, tmp);
-            }
             if (tmp->kind == Value::V_RT_RESULT) {
                 auto t = (RTResult*) tmp;
                 if (t->kind == RTResult::S_RETURN)
@@ -705,16 +671,16 @@ public:
 private:
     std::vector<AST*> opers;
 
-    void create_scope(std::string name) {
+    inline void create_scope(std::string name) {
         global = new Context(name, global);
     }
 
-    void leave_scope() {
+    inline void leave_scope() {
         if (global->parent_context)
             global = global->parent_context;
     }
 
-    Value* system_not_null(std::vector<Value*> args) {
+    inline Value* system_not_null(std::vector<Value*> args) {
         return new Bool(args[0]->kind != Value::V_NULL);
     }
 
@@ -844,9 +810,7 @@ private:
         return new Null();
     }
 
-    Value* visit_null() {
-        return new Null();
-    }
+    inline Value* visit_null() { return new Null(); }
 
     LValue visit_lvalue(AST* a) {
         if (a->kind == AST::A_ID) {
@@ -905,8 +869,7 @@ private:
                 std::cout << "Cannot element-get on non-array/string\n";
                 exit(-1);
             }
-        }
-        else {
+        } else {
             std::cout << "Expression cannot be used as lvalue\n";
             exit(-1);
         }
@@ -942,7 +905,6 @@ private:
         std::string op = sp->op;
         LValue lv = visit_lvalue(sp->target);
         Value* val = visit_value(sp->value);
-
         if (op == "=") {
             lv.setter(val->copy());
         } else {
