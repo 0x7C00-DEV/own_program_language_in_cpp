@@ -11,7 +11,3 @@ class Test {
         this.x = new A(a);
     }
 }
-
-let k = new Test(12);
-k.x.x += 1;
-Println(k.x.x);

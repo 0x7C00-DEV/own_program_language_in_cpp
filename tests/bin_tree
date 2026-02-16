@@ -1,3 +1,5 @@
+import "lambda";
+
 class BinTree {
     data: string;
     left: BinTree;

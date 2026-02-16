@@ -494,6 +494,14 @@ private:
 
     bool match(std::string data) { return current != nullptr && current->data == data; }
 
+    std::string expect_get(Token::TokenKind kind) {
+        if (!match(kind))
+            make_error("SyntaxError", "want '" + std::to_string(kind) + "' get '" + current->data + "'");
+        auto tmp = current->data;
+        advance();
+        return tmp;
+    }
+
     void expect_data(std::string name, Position pos) {
         if (!current || !match(name))
             make_error("SyntaxError", "want '" + name + "', meet '" + ((current)? current->data : "None"), pos);
@@ -504,8 +512,7 @@ private:
 
     ImportNode* make_import() {
         expect_data("import", get_pos());
-        auto path = current->data;
-        advance();
+        auto path = expect_get(Token::TT_STRING);
         expect_data(";", get_pos());
         return new ImportNode(path);
     }
@@ -552,8 +559,7 @@ private:
 
     FunctionNode* make_function_define() {
         if (match("def")) advance();
-        std::string name = current->data;
-        advance();
+        std::string name = expect_get(Token::TT_ID);
         std::vector<AST*> vals = make_area("(", ")", ",", &Parser::make_var_define);
         int w = 0;
         auto body = make_block();
@@ -563,8 +569,7 @@ private:
     AST* make_var_define() {
         std::string name;
         AST* init_value = nullptr;
-        name = current->data;
-        advance();
+        name = expect_get(Token::TT_ID);
         if (match(":")) {
             advance();
             advance();
@@ -578,8 +583,7 @@ private:
 
     MemoryMallocNode* make_malloc() {
         expect_data("new", get_pos());
-        std::string name = current->data;
-        advance();
+        std::string name = expect_get(Token::TT_ID);
         std::vector<AST*> arg;
         if (match("(")) arg = make_area("(", ")", ",", &Parser::make_expression);
         return new MemoryMallocNode(name, arg);
@@ -620,9 +624,8 @@ private:
 
     ObjectNode* make_class() {
         expect_data("class", get_pos());
-        std::string name = current->data;
         std::unordered_map<std::string, AST*> members;
-        advance();
+        std::string name = expect_get(Token::TT_ID);
         expect_data("{", get_pos());
         while (current && !match("}")) {
             if (match("def") || match("constructor") /* constructor */) {
