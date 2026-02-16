@@ -1118,8 +1118,10 @@ private:
     void visit_class(AST* a) {
         auto cl = (ObjectNode*) a;
         std::unordered_map<std::string, Value*> vals;
-        for (auto i : cl->members)
-            vals[i.first] = visit_node(i.second);
+        for (auto i : cl->members) {
+            if (i.second->kind != AST::A_VAR_DEF) vals[i.first] = visit_node(i.second);
+            else vals[i.first] = new Null();
+        }
         global->add(cl->name, new BasicObject(cl->name, vals));
     }
 

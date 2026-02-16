@@ -1,5 +1,17 @@
-import "D:\CLionProjects\OPL\tests\bin_tree";
+class A {
+    x: int;
+    constructor(a: int) {
+        this.x = a;
+    }
+}
 
-let a = new BinTree(12, null, null);
-build_tree(a, 10);
-print_tree(a);
+class Test {
+    x: A;
+    constructor(a: int) {
+        this.x = new A(a);
+    }
+}
+
+let k = new Test(12);
+k.x.x += 1;
+Println(k.x.x);
