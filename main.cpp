@@ -6,6 +6,26 @@
 
 #define TEST
 
+#ifdef RELEASE
+
+void start(int argc, char** argv) {
+    if (argc <= 1) {
+        printf("Usage: %s [FILE_NAME]", argv[0]);
+        return;
+    }
+    std::string name = argv[1];
+    std::ifstream ifs(name);
+    std::string data, buffer;
+    while (std::getline(ifs, buffer))
+        data += buffer + '\n';
+    Lexer lexer(data);
+    Parser parser(lexer.tokens);
+    ModuleManager* mg = new ModuleManager;
+    Interpreter ip("<Program>", parser.ast, mg);
+}
+
+#endif
+
 #ifdef TEST
 
 void shell() {
@@ -38,13 +58,16 @@ void run(std::string name) {
 }
 
 void file() {
-    run(R"(D:\CLionProjects\OPL\tests\lambda)");
+    run(R"(D:\CLionProjects\OPL\tests\bin_tree)");
 }
 #endif
 
-int main() {
+int main(int argc, char** argv) {
 #ifdef TEST
     file();
+#endif
+#ifdef RELEASE
+    start(argc, argv);
 #endif
     return 0;
 }

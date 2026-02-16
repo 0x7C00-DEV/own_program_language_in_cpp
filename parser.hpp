@@ -19,6 +19,10 @@ public:
     AST(AKind kind) {
         this->kind = kind;
     }
+
+    ~AST() {
+        delete &kind;
+    }
 };
 
 class TrueNode : public AST {
@@ -31,6 +35,10 @@ public:
     std::string path;
     ImportNode(std::string path) : AST(A_IMPORT) {
         this->path = path;
+    }
+
+    ~ImportNode() {
+        delete &path;
     }
 };
 
@@ -51,6 +59,11 @@ public:
         this->id = id;
         this->ipre = i;
     }
+
+    ~SelfIncNode() {
+        delete &ipre;
+        delete id;
+    }
 };
 
 class MemoryMallocNode : public AST {
@@ -61,6 +74,10 @@ public:
         this->name = name;
         this->args = args;
     }
+    ~MemoryMallocNode() {
+        delete &name;
+        delete &args;
+    }
 };
 
 class SelfDecNode : public AST {
@@ -70,6 +87,11 @@ public:
     SelfDecNode(AST* id, int i) : AST(A_SELF_DEC) {
         this->id = id;
         this->ipre = i;
+    }
+
+    ~SelfDecNode() {
+        delete id;
+        delete &ipre;
     }
 };
 
@@ -82,6 +104,12 @@ public:
         this->right = right;
         this->left = left;
     }
+
+    ~BinOpNode() {
+        delete &op;
+        delete left;
+        delete right;
+    }
 };
 
 class MemberAccessNode : public AST {
@@ -92,6 +120,11 @@ public:
         this->parent = left;
         this->member = member;
     }
+
+    ~MemberAccessNode() {
+        delete parent;
+        delete &member;
+    }
 };
 
 class StringNode : public AST {
@@ -99,6 +132,10 @@ public:
     std::string str;
     StringNode(std::string str) : AST(AST::A_STRING) {
         this->str = str;
+    }
+
+    ~StringNode() {
+        delete &str;
     }
 };
 
@@ -108,6 +145,10 @@ public:
     IntegerNode(std::string number) : AST(AST::A_INT) {
         this->number = number;
     }
+
+    ~IntegerNode() {
+        delete &number;
+    }
 };
 
 class BitNotNode : public AST {
@@ -116,6 +157,10 @@ public:
     BitNotNode(AST* expr) : AST(AST::A_BIT_NOT) {
         this->expr = expr;
     }
+
+    ~BitNotNode() {
+        delete &expr;
+    }
 };
 
 class IdNode : public AST {
@@ -123,6 +168,10 @@ public:
     std::string id;
     IdNode(std::string id) : AST(AST::A_ID) {
         this->id = id;
+    }
+
+    ~IdNode() {
+        delete &id;
     }
 };
 
@@ -134,6 +183,11 @@ public:
         this->func_name = func_name;
         this->args = args;
     }
+
+    ~CallNode() {
+        delete func_name;
+        delete &args;
+    }
 };
 
 class ElementGetNode : public AST {
@@ -144,6 +198,11 @@ public:
         this->array_name = array_name;
         this->position = position;
     }
+
+    ~ElementGetNode() {
+        delete array_name;
+        delete position;
+    }
 };
 
 class NotNode : public AST {
@@ -152,6 +211,10 @@ public:
     NotNode(AST* expr) : AST(AST::A_NOT) {
         this->expr = expr;
     }
+
+    ~NotNode() {
+        delete expr;
+    }
 };
 
 class Block : public AST {
@@ -159,6 +222,10 @@ public:
     std::vector<AST*> codes;
     Block(std::vector<AST*> codes) : AST(A_BLOCK) {
         this->codes = codes;
+    }
+
+    ~Block() {
+        delete &codes;
     }
 };
 
@@ -172,6 +239,12 @@ public:
         this->if_false = if_false;
         this->if_true = if_true;
     }
+
+    ~IfNode() {
+        delete condition;
+        delete if_false;
+        delete if_true;
+    }
 };
 
 class WhileNode : public AST {
@@ -181,6 +254,11 @@ public:
     WhileNode(AST* condition, Block* body) : AST(A_WHILE) {
         this->condition = condition;
         this->body = body;
+    }
+
+    ~WhileNode() {
+        delete condition;
+        delete body;
     }
 };
 
@@ -192,6 +270,11 @@ public:
         this->args = args;
         this->body = body;
     }
+
+    ~LambdaNode() {
+        delete &args;
+        delete body;
+    }
 };
 
 
@@ -202,6 +285,11 @@ public:
     VarDefineNode(std::string name, AST* init_value = nullptr) : AST(A_VAR_DEF) {
         this->name = name;
         this->init_value = init_value;
+    }
+
+    ~VarDefineNode() {
+        delete &name;
+        delete init_value;
     }
 };
 
@@ -215,6 +303,12 @@ public:
         this->name = name;
         this->args = args;
     }
+
+    ~FunctionNode() {
+        delete body;
+        delete &name;
+        delete &args;
+    }
 };
 
 class SelfOperator : public AST {
@@ -226,6 +320,12 @@ public:
         this->op = op;
         this->target = target;
         this->value = value;
+    }
+
+    ~SelfOperator() {
+        delete &op;
+        delete target;
+        delete value;
     }
 };
 
@@ -240,6 +340,13 @@ public:
         this->is_continue = is_continue;
         this->change = change;
         this->body = body;
+    }
+
+    ~ForNode() {
+        delete init;
+        delete is_continue;
+        delete change;
+        delete body;
     }
 };
 
@@ -260,6 +367,10 @@ public:
     ReturnNode(AST* value) : AST(A_RETURN) {
         this->value = value;
     }
+
+    ~ReturnNode() {
+        delete value;
+    }
 };
 
 class ObjectNode : public AST {
@@ -277,6 +388,10 @@ public:
             return nullptr;
         return members[name];
     }
+
+    ~ObjectNode() {
+        delete &name;
+    }
 };
 
 class NullNode : public AST {
@@ -290,6 +405,10 @@ public:
     ArrayNode(std::vector<AST*> elements) : AST(AST::A_ARRAY){
         this->elements = elements;
     }
+
+    ~ArrayNode() {
+        delete &elements;
+    }
 };
 
 class FloatNode : public AST {
@@ -298,29 +417,26 @@ public:
     FloatNode(std::string number) : AST(AST::A_FLO) {
         this->number = number;
     }
+
+    ~FloatNode() {
+        delete &number;
+    }
 };
 
 class Parser;
 
 typedef AST*(Parser::*CALLBACK_FUNCTION)();
 
-#define expect_data(x) \
-        if (current == nullptr || !match(x)) { \
-            std::cout << "Exception at function '" << __FUNCTION__ << ", lin " << __LINE__ << std::endl; \
-            std::cout << "want '" << x << "', meet '" << ((current == nullptr)? "NULL" : current->data) << "' " << std::endl;     \
-            exit(-1);\
-        } else {  \
-            advance();                                    \
-        }
 
-#define expect_kind(x) \
-        if (current == nullptr || !match(x)) { \
-            std::cout << "Exception at function '" << __FUNCTION__ << ", lin " << __LINE__ << std::endl; \
-            std::cout << "want '" << x << "', meet '" << ((current == nullptr)? "NULL" : current->kind) << "' " << std::endl;     \
-            exit(-1);\
-        } else {  \
-            advance();                                    \
-        }
+void make_error(std::string error_type, std::string error_info, Position error_pos) {
+    std::cout << error_type << ": " << error_info << " at lin " << error_pos.lin << ", col " << error_pos.col << std::endl;
+    exit(-1);
+}
+
+void make_error(std::string error_type, std::string error_info) {
+    std::cout << error_type << ": " << error_info << " at EOF" << std::endl;
+    exit(-1);
+}
 
 class Parser {
 public:
@@ -364,7 +480,7 @@ public:
                     tmp = new SelfOperator(op, tmp, val);
                 }
                 ast.push_back(tmp);
-                expect_data(";");
+                expect_data(";", get_pos());
             }
         }
     }
@@ -378,16 +494,24 @@ private:
 
     bool match(std::string data) { return current != nullptr && current->data == data; }
 
+    void expect_data(std::string name, Position pos) {
+        if (!current || !match(name))
+            make_error("SyntaxError", "want '" + name + "', meet '" + ((current)? current->data : "None"), pos);
+        advance();
+    }
+
+    Position get_pos() { if (!current) { make_error("SyntaxError", "meet eof"); } return current->start_pos; }
+
     ImportNode* make_import() {
-        expect_data("import");
+        expect_data("import", get_pos());
         auto path = current->data;
         advance();
-        expect_data(";");
+        expect_data(";", get_pos());
         return new ImportNode(path);
     }
 
     LambdaNode* make_lambda() {
-        expect_data("$");
+        expect_data("$", get_pos());
         auto args = make_area("(", ")", ",", &Parser::make_var_define);
         auto body = make_block();
         return new LambdaNode(args, body);
@@ -395,28 +519,28 @@ private:
 
     ContinueNode* make_continue() {
         ++pos;
-        expect_data(";");
+        expect_data(";", get_pos());
         return new ContinueNode();
     }
 
     ReturnNode* make_return() {
-        expect_data("return");
+        expect_data("return", get_pos());
         auto val = make_expression();
-        expect_data(";");
+        expect_data(";", get_pos());
         return new ReturnNode(val);
     }
 
     BreakNode* make_break() {
         ++pos;
-        expect_data(";");
+        expect_data(";", get_pos());
         return new BreakNode();
     }
 
     IfNode* make_if() {
-        expect_data("if");
-        expect_data("(");
+        expect_data("if", get_pos());
+        expect_data("(", get_pos());
         auto cond = make_expression();
-        expect_data(")");
+        expect_data(")", get_pos());
         Block* body = make_block();
         Block* el = nullptr;
         if (match("else")) {
@@ -453,7 +577,7 @@ private:
     }
 
     MemoryMallocNode* make_malloc() {
-        expect_data("new");
+        expect_data("new", get_pos());
         std::string name = current->data;
         advance();
         std::vector<AST*> arg;
@@ -462,10 +586,10 @@ private:
     }
 
     WhileNode* make_while() {
-        expect_data("while");
-        expect_data("(");
+        expect_data("while", get_pos());
+        expect_data("(", get_pos());
         auto condition = make_expression();
-        expect_data(")");
+        expect_data(")", get_pos());
         auto block = make_block();
         return new WhileNode(condition, block);
     }
@@ -475,31 +599,31 @@ private:
     }
 
     NullNode* make_null () {
-        expect_data("null");
+        expect_data("null", get_pos());
         return new NullNode();
     }
 
     ForNode* make_for() {
-        expect_data("for");
-        expect_data("(");
+        expect_data("for", get_pos());
+        expect_data("(", get_pos());
         AST *init, *is_continue, *change;
         Block *body;
         init = make_var_define();
-        expect_data(";");
+        expect_data(";", get_pos());
         is_continue = make_expression();
-        expect_data(";");
+        expect_data(";", get_pos());
         change = make_expression();
-        expect_data(")");
+        expect_data(")", get_pos());
         body = make_block();
         return new ForNode(init, is_continue, change, body);
     }
 
     ObjectNode* make_class() {
-        expect_data("class");
+        expect_data("class", get_pos());
         std::string name = current->data;
         std::unordered_map<std::string, AST*> members;
         advance();
-        expect_data("{");
+        expect_data("{", get_pos());
         while (current && !match("}")) {
             if (match("def") || match("constructor") /* constructor */) {
                 auto tmp = make_function_define();
@@ -510,15 +634,15 @@ private:
             } else {
                 auto v = (VarDefineNode*)make_var_define();
                 members[v->name] = v;
-                expect_data(";");
+                expect_data(";", get_pos());
             }
         }
-        expect_data("}");
+        expect_data("}", get_pos());
         return new ObjectNode(name, members);
     }
 
     Block* make_block() {
-        expect_data("{");
+        expect_data("{", get_pos());
         std::vector<AST*> codes;
         while (current && !match("}")) {
             if (match("if")) codes.push_back(make_if());
@@ -542,11 +666,11 @@ private:
                     auto val = make_expression();
                     tmp = new SelfOperator(op, tmp, val);
                 }
-                expect_data(";");
+                expect_data(";", get_pos());
                 codes.push_back(tmp);
             }
         }
-        expect_data("}");
+        expect_data("}", get_pos());
         return new Block(codes);
     }
 
@@ -572,14 +696,14 @@ private:
 
     std::vector<AST*> make_area(std::string begin, std::string end, std::string split, CALLBACK_FUNCTION proc, int cnt = -1) {
         std::vector<AST*> res;
-        expect_data(begin);
+        expect_data(begin, get_pos());
         int count = 0;
         while (current && !match(end) && (cnt == -1 || ++count <= cnt)) {
             res.push_back((this->*proc)());
             if (match(end)) break;
-            expect_data(split);
+            expect_data(split, get_pos());
         }
-        expect_data(end);
+        expect_data(end, get_pos());
         return res;
     }
 
@@ -595,7 +719,7 @@ private:
             } else if (match("[")) {
                 advance();
                 name = new ElementGetNode(name, make_expression());
-                expect_data("]");
+                expect_data("]", get_pos());
             } else if (match(".")) {
                 name = _make_member_access(name);
             }
@@ -611,7 +735,7 @@ private:
         while (current && (match("["))) {
             advance();
             name = new ElementGetNode(name, make_expression());
-            expect_data("]");
+            expect_data("]", get_pos());
         }
         return name;
     }
@@ -723,9 +847,9 @@ private:
             }
             return tmp;
         } else {
-            expect_data("(");
+            expect_data("(", get_pos());
             auto tmp = make_expression();
-            expect_data(")");
+            expect_data(")", get_pos());
             if (match("."))
                 tmp = _make_member_access(tmp);
             if (match("("))

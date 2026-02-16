@@ -446,6 +446,30 @@ public:
         return new String(res);
     }
 
+    Value* less(Value* other) override {
+        return new Bool((int)basicString[0] < (int)((String*)other)->basicString[0]);
+    }
+
+    Value* big(Value* other) override {
+        return new Bool((int)basicString[0] > (int)((String*)other)->basicString[0]);
+    }
+
+    Value* less_or_eq(Value* other) override {
+        return new Bool((int)basicString[0] <= (int)((String*)other)->basicString[0]);
+    }
+
+    Value* big_or_eq(Value* other) override {
+        return new Bool((int)basicString[0] >= (int)((String*)other)->basicString[0]);
+    }
+
+    Value* not_eq_(Value* other) override {
+        return new Bool(basicString != ((String*)other)->basicString);
+    }
+
+    Value* is_eq(Value* other) override {
+        return new Bool(basicString == ((String*)other)->basicString);
+    }
+
     Value* mul(Value* other) override {
         expect(other, V_INT);
         auto t = std::stoi(((Integer*)other)->number);
@@ -676,6 +700,7 @@ public:
         global->add("Input", new BuildInFunctions("Input", &Interpreter::system_input));
         global->add("Append", new BuildInFunctions("Append", &Interpreter::system_append));
         global->add("NotNull", new BuildInFunctions("NotNull", &Interpreter::system_not_null));
+        global->add("Read", new BuildInFunctions("Read", &Interpreter::system_load_file));
     }
 private:
     std::vector<AST*> opers;
@@ -698,6 +723,14 @@ private:
         for (auto i : args)
             point->add(i);
         return point->copy();
+    }
+
+    Value* system_load_file(std::vector<Value*> args) {
+        std::string data, buffer;
+        std::ifstream ifs(((String*)args[0])->basicString);
+        while (std::getline(ifs, buffer))
+            data += buffer + '\n';
+        return new String(data);
     }
 
     Value* system_input(std::vector<Value*> args) {
