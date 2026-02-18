@@ -1,7 +1,6 @@
 class Array {
-	arr;
+	arr = [];
 	constructor() {
-		this.arr = [];
 	}
 
 	def append(x) {

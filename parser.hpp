@@ -635,7 +635,7 @@ private:
         std::string name = expect_get(Token::TT_ID);
         expect_data("{", get_pos());
         while (current && !match("}")) {
-            if (match("def") || match("constructor") /* constructor */) {
+            if (match("def") || match("constructor")) {
                 auto tmp = make_function_define();
                 members[tmp->name] = tmp;
             } else if (match("let")) {

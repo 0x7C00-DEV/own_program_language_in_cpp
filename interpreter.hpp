@@ -1112,7 +1112,10 @@ private:
         std::unordered_map<std::string, Value*> vals;
         for (auto i : cl->members) {
             if (i.second->kind != AST::A_VAR_DEF) vals[i.first] = visit_node(i.second);
-            else vals[i.first] = new Null();
+            else {
+                auto node = (VarDefineNode*) i.second;
+                vals[i.first] = (node->init_value)? visit_value(node->init_value) : new Null();
+            }
         }
         global->add(cl->name, new BasicObject(cl->name, vals));
     }
