@@ -981,7 +981,7 @@ private:
 
     Value* visit_return(AST* a) {
         auto ret = (ReturnNode*)a ;
-        this->execute_result = visit_value(ret->value);
+        this->execute_result = (ret->value)? visit_value(ret->value) : new Null();
         return new RTResult(RTResult::S_RETURN);
     }
 

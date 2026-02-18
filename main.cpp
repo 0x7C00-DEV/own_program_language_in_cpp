@@ -52,11 +52,6 @@ void run(std::string name) {
     printf("[%s] OUTPUT:\n", name.c_str());
     ModuleManager* mg = new ModuleManager;
     Interpreter ip("<Program>", parser.ast, mg);
-
-    std::cout << std::endl << std::endl;
-    std::cout << "Module import state: \n";
-    for (auto i : mg->count)
-        std::cout << "\t" << i.first << std::endl;
 }
 
 void file() {

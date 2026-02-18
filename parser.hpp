@@ -504,9 +504,9 @@ private:
         return tmp;
     }
 
-    void expect_data(std::string name, Position pos) {
+    void expect_data(std::string name, Position _pos) {
         if (!current || !match(name))
-            make_error("SyntaxError", "want '" + name + "', meet '" + ((current)? current->data : "None"), pos);
+            make_error("SyntaxError", "want '" + name + "', meet '" + ((current)? current->data : "None"), _pos);
         advance();
     }
 
@@ -534,6 +534,10 @@ private:
 
     ReturnNode* make_return() {
         expect_data("return", get_pos());
+        if (match(";")) {
+            advance();
+            return new ReturnNode(nullptr);
+        }
         auto val = make_expression();
         expect_data(";", get_pos());
         return new ReturnNode(val);
@@ -1084,6 +1088,10 @@ void decompiler(AST* a, int indent = 0, std::string fo = "") {
         }
         case AST::A_NULL: {
             std::cout << print_indent(indent) << fo << "Null\n";
+            break;
+        }
+        case AST::A_IMPORT: {
+            std::cout << print_indent(indent) << "Import(" << ((ImportNode*)a)->path << ")\n";
             break;
         }
     }

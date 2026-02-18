@@ -1,7 +1,6 @@
 class Array {
 	arr;
 	constructor() {
-		Println("aaa");
 		this.arr = [];
 	}
 
@@ -29,3 +28,6 @@ for (i = 0; i < 100; ++i) {
 	a.append(i);
 }
 Println(a.size());
+for (i = 0; i < a.size(); ++i) {
+	Println(a.get_element(i));
+}
