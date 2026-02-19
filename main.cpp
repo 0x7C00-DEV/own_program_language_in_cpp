@@ -53,7 +53,7 @@ void run(std::string name) {
 }
 
 void file() {
-    run("D:\\CLionProjects\\OPL\\tests\\binary_tree");
+    run("D:\\CLionProjects\\OPL\\tests\\map_test");
 }
 #endif
 

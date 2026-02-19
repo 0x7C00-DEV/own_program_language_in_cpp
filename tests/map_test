@@ -1,0 +1,107 @@
+class Map {
+    let keys: array;
+    let values: array;
+
+    constructor() {
+        this.keys = [];
+        this.values = [];
+    }
+
+    def put(key: object, value: object) {
+        let len: int = Length(this.keys);
+        for (i: int = 0; i < len; ++i) {
+            if (this.keys[i] == key) {
+                this.values[i] = value;
+                return;
+            }
+        }
+        Append(this.keys, key);
+        Append(this.values, value);
+    }
+
+    def get(key: object) -> object {
+        let len: int = Length(this.keys);
+        for (i: int = 0; i < len; ++i) {
+            if (this.keys[i] == key) {
+                return this.values[i];
+            }
+        }
+        return null;
+    }
+
+    def contains(key: object) -> bool {
+        let len: int = Length(this.keys);
+        for (i: int = 0; i < len; ++i) {
+            if (this.keys[i] == key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    def remove(key: object) -> bool {
+        let len: int = Length(this.keys);
+        for (i: int = 0; i < len; ++i) {
+            if (this.keys[i] == key) {
+                let newKeys: array = [];
+                let newValues: array = [];
+                for (j: int = 0; j < len; ++j) {
+                    if (j != i) {
+                        Append(newKeys, this.keys[j]);
+                        Append(newValues, this.values[j]);
+                    }
+                }
+                this.keys = newKeys;
+                this.values = newValues;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    def size() -> int {
+        return Length(this.keys);
+    }
+
+    def keys() -> array {
+        let copy: array = [];
+        let len: int = Length(this.keys);
+        for (i: int = 0; i < len; ++i) {
+            Append(copy, this.keys[i]);
+        }
+        return copy;
+    }
+
+    def values() -> array {
+        let copy: array = [];
+        let len: int = Length(this.values);
+        for (i: int = 0; i < len; ++i) {
+            Append(copy, this.values[i]);
+        }
+        return copy;
+    }
+}
+
+let map: Map = new Map();
+map.put("name", "Alice");
+map.put("age", 25);
+map.put("score", 98.5);
+
+Println("Contains 'name'? ", map.contains("name"));
+Println("name = ", map.get("name"));
+Println("age = ", map.get("age"));
+Println("score = ", map.get("score"));
+
+map.put("age", 26);
+Println("age now = ", map.get("age"));
+
+map.remove("score");
+Println("Contains 'score'? ", map.contains("score"));
+Println("Size = ", map.size());
+
+let ks: array = map.keys;
+let vs: array = map.values;
+let len: int = map.size();
+for (i: int = 0; i < len; ++i) {
+    Println("Key: ", ks[i], ", Value: ", vs[i]);
+}

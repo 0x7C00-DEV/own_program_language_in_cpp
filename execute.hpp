@@ -18,6 +18,14 @@ struct OPL_Object {
     std::vector<long long> loc_mem;
 };
 
+OPL_Object* copy_object(OPL_Object* obj) {
+    std::vector<long long> loc_mem;
+    for (auto i : obj->loc_mem) loc_mem.push_back(i);
+    auto a = new OPL_Object;
+    a->loc_mem = loc_mem;
+    return a;
+}
+
 class VirtualMachine {
 public:
     VirtualMachine(std::vector<int> opc) {
@@ -42,18 +50,25 @@ public:
             case POP: { pop(); break; }
             case PUSH: { push(get()); break; }
             case LOAD: { load(); break; }
-            case STORE: { break; }
+            case STORE: {  break; }
             case JMP: { break; }
             case JMP_IF_TRUE: { break; }
             case JMP_IF_FALSE: { break; }
             case CALL: { break; }
             case RETURN: { break; }
             case LEAVE: { break; }
-            case HALT: { break; }
-            case NEW_OBJECT: { break; }
-            case MEMBER_SET: { break; }
-            case STACK_COPY: { break; }
-            case DEEP_COPY: { break; }        
+            case HALT: { exit(pop()); break; }
+            case NEW_OBJECT: { push(new_object(pop())); break; }
+            case MEMBER_SET: {
+
+                break;
+            }
+            case STACK_COPY: {
+                long long tmp = funcs[funcs.size() - 1].sta.top();
+                push(tmp);
+                break;
+            }
+            case DEEP_COPY: { push((long long)copy_object((OPL_Object*)pop())); break; }
             default: {
                 printf("Unknown operator code %d\n", i);
                 exit(-1);

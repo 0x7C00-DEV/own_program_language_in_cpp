@@ -1202,6 +1202,7 @@ private:
         // ======= Condition
         if (op == "&&") return left->cond_and(right);
         if (op == "||") return left->cond_or(right);
+        if (op == "!=") return left->not_eq_(right);
         std::cout << "Unknown operator '" << op << "' when the program running\n";
         exit(-1);
     }
