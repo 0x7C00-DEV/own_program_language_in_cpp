@@ -364,7 +364,10 @@ public:
 
     std::string str() override {
         std::string s = "[";
-        for (auto i : elements) s += i->str();
+        for (int i = 0; i < elements.size(); ++i) {
+            s += elements[i]->str();
+            if (i != elements.size() - 1) s += ", ";
+        }
         s += "]";
         return s;
     }
@@ -991,7 +994,7 @@ private:
 
     Value *visit_bit_not(AST* a) { return visit_value(a)->bit_not(); }
 
-    Value* visit_not(AST* a) { return visit_value(a)->cond_not(); }
+    Value* visit_not(AST* a) { return visit_value(((NotNode*)a)->expr)->cond_not(); }
 
     Value* visit_element_get(AST* a) {
         auto tmp = (ElementGetNode*) a;
@@ -1158,6 +1161,7 @@ private:
         if (a->kind == AST::A_CALL) return visit_call(a);
         if (a->kind == AST::A_NULL) return visit_null();
         if (a->kind == AST::A_TRUE) return new Bool(true);
+        if (a->kind == AST::A_NOT) return visit_not(a);
         if (a->kind == AST::A_ELEMENT_GET) return visit_element_get(a);
         if (a->kind == AST::A_INT) return new Integer(((IntegerNode*)a)->number);
         if (a->kind == AST::A_FLO) return new Float(((FloatNode*)a)->number);

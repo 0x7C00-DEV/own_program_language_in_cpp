@@ -25,6 +25,38 @@ public:
     }
 };
 
+class TypeNode {
+public:
+    enum TNKind { TN_ARRAY, TN_NORMAL, TN_FUNC } kind;
+    TypeNode(TNKind kind) { this->kind = kind; }
+};
+
+class ArrayKind : public TypeNode {
+public:
+    TypeNode* basic_type;
+    ArrayKind(TypeNode* basic_type) : TypeNode(TN_ARRAY) {
+        this->basic_type = basic_type;
+    }
+};
+
+class FuncKind : public TypeNode {
+public:
+    std::vector<TypeNode*> __in__;
+    TypeNode* __out__;
+    FuncKind(std::vector<TypeNode*> __in__, TypeNode* __out__) : TypeNode(TN_FUNC) {
+        this->__in__ = __in__;
+        this->__out__ = __out__;
+    }
+};
+
+class NormalKind : public TypeNode {
+public:
+    std::string type;
+    NormalKind(std::string type) : TypeNode(TN_NORMAL) {
+        this->type = type;
+    }
+};
+
 class TrueNode : public AST {
 public:
     TrueNode() : AST(AST::A_TRUE) { }
@@ -284,9 +316,11 @@ class VarDefineNode : public AST {
 public:
     std::string name;
     AST* init_value;
-    VarDefineNode(std::string name, AST* init_value = nullptr) : AST(A_VAR_DEF) {
+    TypeNode* vtype;
+    VarDefineNode(std::string name, TypeNode* vtype, AST* init_value = nullptr) : AST(A_VAR_DEF) {
         this->name = name;
         this->init_value = init_value;
+        this->vtype = vtype;
     }
 
     ~VarDefineNode() {
@@ -300,10 +334,12 @@ public:
     Block* body;
     std::string name;
     std::vector<AST*> args;
-    FunctionNode(std::string name, std::vector<AST*> args, Block* body) : AST(A_FUNC_DEFINE) {
+    FuncKind* kid;
+    FunctionNode(std::string name, std::vector<AST*> args, Block* body, FuncKind* fk) : AST(A_FUNC_DEFINE) {
         this->body = body;
         this->name = name;
         this->args = args;
+        this->kid = fk;
     }
 
     ~FunctionNode() {
@@ -379,10 +415,16 @@ class ObjectNode : public AST {
 public:
     std::string name;
 
+    enum AccessState {
+        PUBLIC, PRIVATE
+    };
+
     std::unordered_map<std::string, AST*> members;
-    ObjectNode(std::string name, std::unordered_map<std::string, AST*> members) : AST(A_CLASS) {
+    std::unordered_map<std::string, AccessState> as;
+    ObjectNode(std::string name, std::unordered_map<std::string, AST*> members, std::unordered_map<std::string, AccessState> as) : AST(A_CLASS) {
         this->members = members;
         this->name = name;
+        this->as = as;
     }
 
     AST* get_constructor() {
@@ -440,6 +482,32 @@ void make_error(std::string error_type, std::string error_info) {
     exit(-1);
 }
 
+class SymbolTable {
+public:
+    enum SymbolBaseKind { S_CLASS, S_FUNC, S_VAR } kind;
+    SymbolTable(SymbolBaseKind kind) { this->kind = kind; }
+};
+
+class VarTable : public SymbolTable{
+public:
+    std::string name;
+    TypeNode* typeNode;
+    VarTable(std::string name, TypeNode* typeNode) : SymbolTable(S_VAR) {
+        this->name = name;
+        this->typeNode = typeNode;
+    }
+};
+
+class FunctionTable : public SymbolTable {
+public:
+    std::string name;
+    FuncKind* fk;
+    FunctionTable(std::string name, FuncKind* fk) : SymbolTable(S_FUNC) {
+        this->name = name;
+        this->fk = fk;
+    }
+};
+
 class Parser {
 public:
     Parser(std::vector<Token> tokens) {
@@ -448,6 +516,7 @@ public:
         current = nullptr;
         advance();
         make_all();
+        build_symbol_table();
     }
     std::vector<AST*> ast;
 
@@ -491,6 +560,33 @@ private:
     std::vector<Token> tokens;
     int pos;
     Token* current;
+
+    std::unordered_map<std::string, SymbolTable> symbols;
+
+    TypeNode* get_value_type(AST* a) {
+
+    }
+
+    void build_var(VarDefineNode* vdn) {
+
+    }
+
+    void build_function(FunctionNode *fn) {
+
+    }
+
+    void build_object(ObjectNode *oj) {
+
+    }
+
+    void build_symbol_table() {
+        for (auto i : ast) {
+            int t = i->kind;
+            if (t == AST::A_VAR_DEF) build_var((VarDefineNode*)i);
+            if (t == AST::A_FUNC_DEFINE) build_function((FunctionNode*)i);
+            if (t == AST::A_CLASS) build_object((ObjectNode*)i);
+        }
+    }
 
     bool match(Token::TokenKind kind) { return current != nullptr && current->kind == kind; }
 
@@ -563,28 +659,65 @@ private:
         return new IfNode(cond, body, el);
     }
 
+    TypeNode* make_type() {
+        // TypeName
+        // [TypeName]
+        // func(Type1, Type2, ..., TypeN) ReturnType
+        if (match(Token::TT_ID) && !match("func")) {
+            std::string tn = current->data;
+            advance();
+            return new NormalKind(tn);
+        } else if (match("[")) {
+            advance();
+            auto t = make_type();
+            expect_data("]", get_pos());
+            return new ArrayKind(t);
+        } else if (match("func")) {
+            advance();
+            expect_data("(", get_pos());
+            std::vector<TypeNode*> type;
+            while (current && !match(")")) {
+                type.push_back(make_type());
+                if (match(")")) break;
+                expect_data(",", get_pos());
+            }
+            expect_data(")", get_pos());
+            expect_data("->", get_pos());
+            TypeNode* ret_type = make_type();
+            return new FuncKind(type, ret_type);
+        } else {
+            std::cout << "Unknown type '" << ((current)? current->data : "None") << std::endl;
+            exit(-1);
+        }
+    }
+
     FunctionNode* make_function_define() {
         if (match("def")) advance();
         std::string name = expect_get(Token::TT_ID);
         std::vector<AST*> vals = make_area("(", ")", ",", &Parser::make_var_define);
         int w = 0;
+        TypeNode* type = nullptr;
+        if (match("->")) {
+            advance();
+            type = make_type();
+        }
+        std::vector<TypeNode*> types;
+        for (auto i : vals) types.push_back(((VarDefineNode*)i)->vtype);
         auto body = make_block();
-        return new FunctionNode(name, vals, body);
+        return new FunctionNode(name, vals, body, new FuncKind(types, type));
     }
 
     AST* make_var_define() {
         std::string name;
         AST* init_value = nullptr;
         name = expect_get(Token::TT_ID);
-        if (match(":")) {
-            advance();
-            advance();
-        }
+        expect_data(":", get_pos());
+        TypeNode* tn = make_type();
         if (match("=")) {
             advance();
             init_value = make_expression();
         }
-        return new VarDefineNode(name, init_value);
+        return new VarDefineNode(name, tn, init_value);
     }
 
     MemoryMallocNode* make_malloc() {
@@ -632,26 +765,63 @@ private:
     ObjectNode* make_class() {
         expect_data("class", get_pos());
         std::unordered_map<std::string, AST*> members;
+        std::unordered_map<std::string, ObjectNode::AccessState> as;
         std::string name = expect_get(Token::TT_ID);
         expect_data("{", get_pos());
+        ObjectNode::AccessState _as = ObjectNode::PRIVATE;
         while (current && !match("}")) {
+            if (match("public")) advance(), _as = ObjectNode::PUBLIC;
+            else if (match("private")) advance(),_as = ObjectNode::PRIVATE;
             if (match("def") || match("constructor")) {
+                std::string name = current->data;
+                if (name == "constructor") _as = ObjectNode::PUBLIC;
                 auto tmp = make_function_define();
                 members[tmp->name] = tmp;
+                as[name] = _as;
+                _as = ObjectNode::PRIVATE;
             } else if (match("let")) {
                 auto vars = make_var_define_group();
-                for (auto i : vars) members[((VarDefineNode*)i)->name] = i;
+                for (auto i : vars) members[((VarDefineNode*)i)->name] = i, as[((VarDefineNode*)i)->name] = _as;
             } else {
                 auto v = (VarDefineNode*)make_var_define();
                 members[v->name] = v;
+                as[v->name] = _as;
                 expect_data(";", get_pos());
             }
         }
         expect_data("}", get_pos());
-        return new ObjectNode(name, members);
+        return new ObjectNode(name, members, as);
     }
 
     Block* make_block() {
+        if (!match("{")) {
+            std::vector<AST*> codes;
+            if (match("if")) codes.push_back(make_if());
+            else if (match("while")) codes.push_back(make_while());
+            else if (match("import")) codes.push_back(make_import());
+            else if (match("for")) codes.push_back(make_for());
+            else if (match("continue")) codes.push_back(make_continue());
+            else if (match("new")) codes.push_back(make_malloc());
+            else if (match("break")) codes.push_back(make_break());
+            else if (match("return")) codes.push_back(make_return());
+            else if (match("let")) {
+                auto a = make_var_define_group();
+                for (auto i : a) codes.push_back(i);
+            }
+            else {
+                auto tmp = make_expression();
+                if (std::count(self_operator.begin(), self_operator.end(), current->data) == 1 &&
+                    (tmp->kind == AST::A_ID || tmp->kind == AST::A_MEMBER_ACCESS || tmp->kind == AST::A_ELEMENT_GET)) {
+                    std::string op = current->data;
+                    advance();
+                    auto val = make_expression();
+                    tmp = new SelfOperator(op, tmp, val);
+                }
+                expect_data(";", get_pos());
+                codes.push_back(tmp);
+            }
+            return new Block(codes);
+        }
         expect_data("{", get_pos());
         std::vector<AST*> codes;
         while (current && !match("}")) {
@@ -842,6 +1012,7 @@ private:
             advance();
             return new TrueNode();
         } else if (match("false")) {
+            advance();
             return new FalseNode();
         } else if (match(Token::TT_ID)) {
             auto tmp = make_call_node();

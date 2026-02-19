@@ -1,0 +1,127 @@
+# 二叉树节点类
+class Node {
+    public data: int;
+    public left: Node;
+    public right: Node;
+
+    constructor(data: int) {
+        this.data = data;
+        this.left = null;
+        this.right = null;
+    }
+}
+
+# 二叉搜索树类
+class BinarySearchTree {
+    private root: Node;
+
+    constructor() {
+        this.root = null;
+    }
+
+    # 插入值
+    public def insert(value: int) {
+        if (!NotNull(this.root)) {          # 原 root == null
+            this.root = new Node(value);
+        } else {
+            this._insert_recursive(this.root, value);
+        }
+    }
+
+    private def _insert_recursive(node: Node, value: int) {
+        if (value < node.data) {
+            if (!NotNull(node.left)) {      # 原 node.left == null
+                node.left = new Node(value);
+            } else {
+                this._insert_recursive(node.left, value);
+            }
+        } else if (value > node.data) {
+            if (!NotNull(node.right)) {     # 原 node.right == null
+                node.right = new Node(value);
+            } else {
+                this._insert_recursive(node.right, value);
+            }
+        }
+        # 相等时不插入
+    }
+
+    # 中序遍历（返回有序数组）
+    public def inorder() -> [int] {
+        let result: [int] = [];
+        this._inorder_recursive(this.root, result);
+        return result;
+    }
+
+    private def _inorder_recursive(node: Node, result: [int]) {
+        if (NotNull(node)) {                # 原 node != null
+            this._inorder_recursive(node.left, result);
+            Append(result, node.data);
+            this._inorder_recursive(node.right, result);
+        }
+    }
+
+    # 前序遍历
+    public def preorder() -> [int] {
+        let result: [int] = [];
+        this._preorder_recursive(this.root, result);
+        return result;
+    }
+
+    private def _preorder_recursive(node: Node, result: [int]) {
+        if (NotNull(node)) {                # 原 node != null
+            Append(result, node.data);
+            this._preorder_recursive(node.left, result);
+            this._preorder_recursive(node.right, result);
+        }
+    }
+
+    # 后序遍历
+    public def postorder() -> [int] {
+        let result: [int] = [];
+        this._postorder_recursive(this.root, result);
+        return result;
+    }
+
+    private def _postorder_recursive(node: Node, result: [int]) {
+        if (NotNull(node)) {                # 原 node != null
+            this._postorder_recursive(node.left, result);
+            this._postorder_recursive(node.right, result);
+            Append(result, node.data);
+        }
+    }
+
+    # 搜索值是否存在
+    public def search(value: int) -> bool {
+        return this._search_recursive(this.root, value);
+    }
+
+    private def _search_recursive(node: Node, value: int) -> bool {
+        if (!NotNull(node)) {               # 原 node == null
+            return false;
+        } if (value == node.data) {
+            return true;
+        } else if (value < node.data) {
+            return this._search_recursive(node.left, value);
+        } else {
+            return this._search_recursive(node.right, value);
+        }
+    }
+}
+
+# 测试代码
+let bst: BinarySearchTree = new BinarySearchTree();
+
+bst.insert(50);
+bst.insert(30);
+bst.insert(20);
+bst.insert(40);
+bst.insert(70);
+bst.insert(60);
+bst.insert(80);
+
+Println("Inorder traversal: ", bst.inorder());   # [20, 30, 40, 50, 60, 70, 80]
+Println("Preorder traversal: ", bst.preorder()); # [50, 30, 20, 40, 70, 60, 80]
+Println("Postorder traversal: ", bst.postorder()); # [20, 40, 30, 60, 80, 70, 50]
+
+Print("Search 40: "); Println(bst.search(40));   # true
+Print("Search 100: "); Println(bst.search(100)); # false

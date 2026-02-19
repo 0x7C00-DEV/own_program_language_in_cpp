@@ -1,0 +1,37 @@
+def quick_sort(arr: [int]) -> [int] {
+    return quick_sort_range(arr, 0, Length(arr) - 1);
+}
+
+def quick_sort_range(arr: [int], low: int, high: int) -> [int] {
+    if (low < high) {
+        let pi: int = partition(arr, low, high);
+        quick_sort_range(arr, low, pi - 1);
+        quick_sort_range(arr, pi + 1, high);
+    }
+    return arr;
+}
+
+def partition(arr: [int], low: int, high: int) -> int {
+    let pivot: int = arr[high];
+    let i: int = low - 1;
+    for (j: int = low; j < high; ++j) {
+        if (arr[j] < pivot) {
+            i = i + 1;
+            let temp: int = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+    let temp: int = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp;
+    return i + 1;
+}
+
+let arr: [int] = [10, 7, 8, 9, 1, 5];
+Println("Original array:");
+Println(arr);
+
+let sorted: [int] = quick_sort(arr);
+Println("Sorted array:");
+Println(sorted);

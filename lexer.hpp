@@ -38,7 +38,7 @@ struct Token {
 
 const std::vector<std::string> keys = {
         "if", "else", "for", "while", "def", "let", "class", "new", "break", "continue", "return",
-        "import"
+        "import", "public", "private"
 };
 
 class Lexer {
@@ -54,7 +54,7 @@ public:
     int lin, col;
     std::vector<Token> tokens;
     std::vector<std::string> ops = {
-            "++", "--", "+=", "-=", "*=", "/=", "%=", ">>=", "<<=", ">>", "<<", "==", ">=", "<=", "!=", "**", "||", "&&", "|=", "&="
+            "++", "--", "+=", "-=", "*=", "/=", "%=", ">>=", "<<=", ">>", "<<", "==", ">=", "<=", "!=", "**", "||", "&&", "|=", "&=", "->"
     };
 private:
     int pos;

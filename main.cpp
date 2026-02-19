@@ -9,7 +9,6 @@
 #define TEST
 
 #ifdef RELEASE
-
 void start(int argc, char** argv) {
     if (argc <= 1) {
         printf("Usage: %s [FILE_NAME]", argv[0]);
@@ -25,7 +24,6 @@ void start(int argc, char** argv) {
     ModuleManager* mg = new ModuleManager;
     Interpreter ip("<Program>", parser.ast, mg);
 }
-
 #endif
 
 #ifdef TEST
@@ -55,7 +53,7 @@ void run(std::string name) {
 }
 
 void file() {
-    run(R"(D:\CLionProjects\OPL\tests\append_test)");
+    run("D:\\CLionProjects\\OPL\\tests\\binary_tree");
 }
 #endif
 
